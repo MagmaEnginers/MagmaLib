@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MagmaLib v1.0 - Documentación Completa</title>
+    <title>io.github.piratemajo.magmalib.MagmaLib v1.1 - Documentación</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/run_prettify.js"></script>
     <style>
@@ -17,31 +17,35 @@
             --gray: #718096;
             --border: #e2e8f0;
             --success: #38b000;
+            --bg: #f8fafc;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        [data-theme="dark"] {
+            --primary: #5a9bff;
+            --primary-light: #1a2a4a;
+            --light: #1a202c;
+            --dark: #f7fafc;
+            --gray: #a0aec0;
+            --border: #2d3748;
+            --bg: #1a202c;
         }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f8fafc;
+            background: var(--bg);
             color: var(--dark);
             line-height: 1.6;
+            transition: background 0.3s, color 0.3s;
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
 
         header {
             background: var(--light);
-            padding: 1.5rem 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             position: sticky;
             top: 0;
             z-index: 100;
@@ -62,36 +66,33 @@
             color: var(--primary);
         }
 
+        .theme-toggle {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
         .hero {
             text-align: center;
             padding: 4rem 0;
-            background: linear-gradient(135deg, #f0f7ff, #ffffff);
+            background: linear-gradient(135deg, var(--primary-light), var(--light));
         }
 
-        .hero h1 {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-            color: var(--dark);
-        }
+        .hero h1 { font-size: 2.5rem; margin-bottom: 1rem; color: var(--dark); }
+        .hero p { font-size: 1.2rem; color: var(--gray); max-width: 700px; margin: 0 auto; }
 
-        .hero p {
-            font-size: 1.2rem;
-            color: var(--gray);
-            max-width: 700px;
-            margin: 0 auto;
-        }
-
-        .section {
-            padding: 3rem 0;
-            border-bottom: 1px solid var(--border);
-        }
-
+        .section { padding: 3rem 0; border-bottom: 1px solid var(--border); }
         .section-title {
             margin-bottom: 2rem;
             padding-bottom: 1rem;
             border-bottom: 2px solid var(--primary);
         }
-
         .section-title h2 {
             font-size: 1.8rem;
             color: var(--dark);
@@ -123,7 +124,7 @@
             color: var(--primary);
         }
 
-        .method-card .signature {
+        .signature {
             background: var(--primary-light);
             padding: 0.5rem;
             border-radius: 5px;
@@ -132,17 +133,8 @@
             font-size: 0.95rem;
         }
 
-        .method-card .params {
-            margin: 1rem 0;
-            padding-left: 1.5rem;
-        }
-
-        .method-card .params li {
-            margin-bottom: 0.5rem;
-        }
-
         .code-block {
-            background: #f1f5f9;
+            background: var(--bg);
             border-radius: 8px;
             padding: 1.2rem;
             margin: 1rem 0;
@@ -160,10 +152,30 @@
         }
 
         .entity-section {
-            background: #f0f7ff;
+            background: var(--primary-light);
             border-radius: 10px;
             padding: 1.5rem;
             margin: 2rem 0;
+        }
+
+        .compatibility-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        .compatibility-table th, .compatibility-table td {
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            text-align: left;
+        }
+        .compatibility-table th { background: var(--primary-light); }
+
+        footer {
+            background: var(--dark);
+            color: var(--light);
+            padding: 2rem 0;
+            text-align: center;
+            margin-top: 3rem;
         }
 
         .footer-links {
@@ -171,21 +183,23 @@
             gap: 20px;
             justify-content: center;
             margin-top: 1rem;
+            flex-wrap: wrap;
         }
 
-        footer {
-            background: var(--dark);
-            color: white;
-            padding: 2rem 0;
-            text-align: center;
-            margin-top: 3rem;
+        .footer-links a {
+            color: var(--light);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
+
+        .footer-links a:hover { text-decoration: underline; }
 
         .new-feature {
             position: relative;
             border-left: 4px solid var(--accent);
         }
-        
         .new-feature::before {
             content: "NUEVO";
             position: absolute;
@@ -199,519 +213,470 @@
             font-weight: bold;
         }
 
+        .search-bar {
+            margin: 1rem 0;
+            display: flex;
+            gap: 10px;
+        }
+        .search-bar input {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            background: var(--light);
+            color: var(--dark);
+        }
+
         @media (max-width: 768px) {
-            .hero {
-                padding: 2rem 0;
-            }
-            
-            .hero h1 {
-                font-size: 2rem;
-            }
-            
-            .method-grid {
-                grid-template-columns: 1fr;
-            }
+            .hero { padding: 2rem 0; }
+            .hero h1 { font-size: 2rem; }
+            .method-grid { grid-template-columns: 1fr; }
+            nav { flex-direction: column; gap: 1rem; }
         }
     </style>
 </head>
 <body>
-    <header>
-        <div class="container">
-            <nav>
-                <div class="logo">
-                    <i class="fas fa-bolt"></i>
-                    <span>MagmaLib v1.0</span>
-                </div>
-            </nav>
-        </div>
-    </header>
-
-    <section class="hero">
-        <div class="container">
-            <h1>Documentación Completa de MagmaLib</h1>
-            <p>La solución profesional para migrar plugins de Paper a Folia con una API moderna y eficiente</p>
-        </div>
-    </section>
-
-    <section class="section">
-        <div class="container">
-            <div class="section-title">
-                <h2><i class="fas fa-plug"></i> Inicialización</h2>
+<header>
+    <div class="container">
+        <nav>
+            <div class="logo">
+                <i class="fas fa-bolt"></i>
+                <span>io.github.piratemajo.magmalib.MagmaLib v1.1</span>
             </div>
-            
-            <div class="method-grid">
-                <div class="method-card">
-                    <h3><i class="fas fa-cog"></i> init()</h3>
-                    <div class="signature">MagmaLib.init(Plugin plugin)</div>
-                    <p>Inicializa la librería con tu plugin principal.</p>
-                    <div class="code-block">
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button class="theme-toggle" onclick="toggleTheme()">
+                    <i class="fas fa-moon"></i> Tema
+                </button>
+            </div>
+        </nav>
+    </div>
+</header>
+
+<section class="hero">
+    <div class="container">
+        <h1>Documentación de io.github.piratemajo.magmalib.MagmaLib</h1>
+        <p>La solución profesional para migrar plugins de Paper a Folia con una API moderna, type-safe y eficiente</p>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="section-title">
+            <h2><i class="fas fa-rocket"></i> Inicio Rápido</h2>
+        </div>
+
+        <div class="note">
+            <strong>3 pasos para integrar io.github.piratemajo.magmalib.MagmaLib:</strong>
+            <ol style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                <li>Añadir como dependencia en tu <code>pom.xml</code> o <code>build.gradle</code></li>
+                <li>Llamar <code>io.github.piratemajo.magmalib.MagmaLib.init(this)</code> en <code>onEnable()</code></li>
+                <li>Reemplazar <code>Bukkit.getScheduler()</code> por <code>io.github.piratemajo.magmalib.MagmaLib.task()</code></li>
+            </ol>
+        </div>
+
+        <div class="code-block">
+                <pre class="prettyprint">// 1. En tu plugin principal
+@Override
+public void onEnable() {
+    io.github.piratemajo.magmalib.MagmaLib.init(this);
+
+    // 2. Usar Task Builder
+    io.github.piratemajo.magmalib.MagmaLib.task(() -> {
+        player.sendMessage("¡Hola desde io.github.piratemajo.magmalib.MagmaLib!");
+    })
+    .at(player.getLocation())
+    .afterTicks(20)
+    .handleException(e -> getLogger().warning("Error: " + e.getMessage()))
+    .run();
+}</pre>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="section-title">
+            <h2><i class="fas fa-plug"></i> Inicialización</h2>
+        </div>
+
+        <div class="method-grid">
+            <div class="method-card">
+                <h3><i class="fas fa-cog"></i> init()</h3>
+                <div class="signature">void init(Plugin plugin)</div>
+                <p>Inicializa la librería. Llamar en <code>onEnable()</code>.</p>
+                <div class="code-block">
                         <pre class="prettyprint">@Override
 public void onEnable() {
-    MagmaLib.init(this);
+    io.github.piratemajo.magmalib.MagmaLib.init(this);
 }</pre>
-                    </div>
                 </div>
-                
-                <div class="method-card">
-                    <h3><i class="fas fa-check-circle"></i> isFolia()</h3>
-                    <div class="signature">boolean isFolia()</div>
-                    <p>Determina si el servidor está ejecutando Folia.</p>
-                    <div class="code-block">
-                        <pre class="prettyprint">if (MagmaLib.isFolia()) {
-    // Código específico para Folia
+            </div>
+
+            <div class="method-card">
+                <h3><i class="fas fa-check-circle"></i> isFolia()</h3>
+                <div class="signature">boolean isFolia()</div>
+                <p>Detecta automáticamente si el servidor es Folia.</p>
+                <div class="code-block">
+                        <pre class="prettyprint">if (io.github.piratemajo.magmalib.MagmaLib.isFolia()) {
+    // Código optimizado para Folia
 }</pre>
-                    </div>
                 </div>
             </div>
         </div>
-    </section>
+    </div>
+</section>
 
-    <section class="section">
-        <div class="container">
-            <div class="section-title">
-                <h2><i class="fas fa-tasks"></i> Task Builder</h2>
-            </div>
-            
-            <div class="method-grid">
-                <div class="method-card">
-                    <h3><i class="fas fa-play"></i> task()</h3>
-                    <div class="signature">TaskBuilder task(Runnable runnable)</div>
-                    <p>Crea una nueva tarea con el Runnable especificado.</p>
-                    <div class="code-block">
-                        <pre class="prettyprint">MagmaLib.task(() -> {
+<section class="section">
+    <div class="container">
+        <div class="section-title">
+            <h2><i class="fas fa-tasks"></i> Task Builder</h2>
+        </div>
+
+        <div class="method-grid">
+            <div class="method-card">
+                <h3><i class="fas fa-play"></i> task()</h3>
+                <div class="signature">TaskBuilder task(Runnable runnable)</div>
+                <p>Punto de entrada para configurar tareas.</p>
+                <div class="code-block">
+                        <pre class="prettyprint">io.github.piratemajo.magmalib.MagmaLib.task(() -> {
     player.sendMessage("¡Hola!");
 });</pre>
-                    </div>
                 </div>
-                
-                <div class="method-card">
-                    <h3><i class="fas fa-map-marker-alt"></i> at()</h3>
-                    <div class="signature">TaskBuilder at(Location location)</div>
-                    <p>Ejecuta la tarea en la ubicación especificada (vinculado al chunk).</p>
-                    <div class="code-block">
-                        <pre class="prettyprint">.at(player.getLocation())</pre>
-                    </div>
+            </div>
+
+            <div class="method-card">
+                <h3><i class="fas fa-map-marker-alt"></i> at()</h3>
+                <div class="signature">TaskBuilder at(Location location)</div>
+                <p>Ejecuta en la región del chunk (Folia) o hilo principal (Paper).</p>
+                <div class="code-block">
+                    <pre class="prettyprint">.at(player.getLocation())</pre>
                 </div>
-                
-                <div class="method-card">
-                    <h3><i class="fas fa-user"></i> with()</h3>
-                    <div class="signature">TaskBuilder with(Entity entity)</div>
-                    <p>Vincula la tarea a una entidad específica.</p>
-                    <div class="code-block">
-                        <pre class="prettyprint">.with(villager)</pre>
-                    </div>
+            </div>
+
+            <div class="method-card">
+                <h3><i class="fas fa-user"></i> with()</h3>
+                <div class="signature">TaskBuilder with(Entity entity)</div>
+                <p>Vincula la tarea al scheduler de la entidad (Folia).</p>
+                <div class="code-block">
+                    <pre class="prettyprint">.with(villager)</pre>
                 </div>
-                
-                <div class="method-card">
-                    <h3><i class="fas fa-clock"></i> after()</h3>
-                    <div class="signature">TaskBuilder after(long delay, TimeUnit unit)</div>
-                    <p>Retrasa la ejecución con la unidad temporal especificada.</p>
-                    <div class="code-block">
-                        <pre class="prettyprint">.after(2, TimeUnit.SECONDS)</pre>
-                    </div>
+            </div>
+
+            <div class="method-card">
+                <h3><i class="fas fa-clock"></i> after()</h3>
+                <div class="signature">TaskBuilder after(long delay, TimeUnit unit)</div>
+                <p>Retraso con cualquier unidad temporal.</p>
+                <div class="code-block">
+                    <pre class="prettyprint">.after(2, TimeUnit.SECONDS)</pre>
                 </div>
-                
-                <div class="method-card">
-                    <h3><i class="fas fa-history"></i> every()</h3>
-                    <div class="signature">TaskBuilder every(long period, TimeUnit unit)</div>
-                    <p>Configura la tarea como repetitiva con el intervalo especificado.</p>
-                    <div class="code-block">
-                        <pre class="prettyprint">.every(5, TimeUnit.SECONDS)</pre>
-                    </div>
+            </div>
+
+            <div class="method-card">
+                <h3><i class="fas fa-stopwatch"></i> afterTicks()</h3>
+                <div class="signature">TaskBuilder afterTicks(long ticks)</div>
+                <p>Retraso en ticks de Minecraft (1 tick = 50ms).</p>
+                <div class="code-block">
+                    <pre class="prettyprint">.afterTicks(20) // 1 segundo</pre>
                 </div>
-                
-                <div class="method-card">
-                    <h3><i class="fas fa-sync-alt"></i> async()</h3>
-                    <div class="signature">TaskBuilder async()</div>
-                    <p>Ejecuta la tarea de forma asíncrona (fuera del hilo principal).</p>
-                    <div class="code-block">
-                        <pre class="prettyprint">.async()</pre>
-                    </div>
+            </div>
+
+            <div class="method-card">
+                <h3><i class="fas fa-sync-alt"></i> every()</h3>
+                <div class="signature">TaskBuilder every(long period, TimeUnit unit)</div>
+                <p>Configura tarea repetitiva.</p>
+                <div class="code-block">
+                    <pre class="prettyprint">.every(5, TimeUnit.SECONDS)</pre>
                 </div>
-                
-                <div class="method-card">
-                    <h3><i class="fas fa-shield-alt"></i> cancelIfUnloaded()</h3>
-                    <div class="signature">TaskBuilder cancelIfUnloaded(boolean cancel)</div>
-                    <p>Cancela la tarea si el chunk no está cargado (solo para ubicaciones).</p>
-                    <div class="code-block">
-                        <pre class="prettyprint">.cancelIfUnloaded(true)</pre>
-                    </div>
+            </div>
+
+            <div class="method-card">
+                <h3><i class="fas fa-sync"></i> everyTicks()</h3>
+                <div class="signature">TaskBuilder everyTicks(long ticks)</div>
+                <p>Intervalo repetitivo en ticks.</p>
+                <div class="code-block">
+                    <pre class="prettyprint">.everyTicks(100) // Cada 5 segundos</pre>
                 </div>
-                
-                <div class="method-card">
-                    <h3><i class="fas fa-ban"></i> cancelIf()</h3>
-                    <div class="signature">TaskBuilder cancelIf(BooleanSupplier condition)</div>
-                    <p>Cancela la tarea si se cumple la condición especificada.</p>
-                    <div class="code-block">
-                        <pre class="prettyprint">.cancelIf(() -> !entity.isValid())</pre>
-                    </div>
-                </div>
-                
-                <div class="method-card">
-                    <h3><i class="fas fa-bug"></i> handleException()</h3>
-                    <div class="signature">TaskBuilder handleException(Consumer&lt;Exception&gt; handler)</div>
-                    <p>Manejador personalizado para excepciones durante la ejecución.</p>
-                    <div class="code-block">
+            </div>
+
+            <div class="method-card">
+                <h3><i class="fas fa-bug"></i> handleException()</h3>
+                <div class="signature">TaskBuilder handleException(Consumer&lt;Exception&gt; handler)</div>
+                <p>Manejador personalizado de errores.</p>
+                <div class="code-block">
                         <pre class="prettyprint">.handleException(e -> {
-    player.sendMessage("Error: " + e.getMessage());
+    plugin.getLogger().warning("Error: " + e.getMessage());
 })</pre>
-                    </div>
                 </div>
-                
-                <div class="method-card">
-                    <h3><i class="fas fa-check"></i> run()</h3>
-                    <div class="signature">Task run()</div>
-                    <p>Ejecuta la tarea configurada y devuelve un objeto Task para manejo.</p>
-                    <div class="code-block">
-                        <pre class="prettyprint">Task task = builder.run();</pre>
-                    </div>
+            </div>
+
+            <div class="method-card">
+                <h3><i class="fas fa-check"></i> run()</h3>
+                <div class="signature">Task run()</div>
+                <p>Ejecuta la tarea y devuelve objeto para manejo.</p>
+                <div class="code-block">
+                        <pre class="prettyprint">Task task = builder.run();
+// Luego: task.cancel();</pre>
                 </div>
             </div>
         </div>
-    </section>
+    </div>
+</section>
 
-    <section class="section">
-        <div class="container">
-            <div class="section-title">
-                <h2><i class="fas fa-star"></i> Nuevas Funciones</h2>
-            </div>
-            
-            <div class="method-grid">
-                <div class="method-card new-feature">
-                    <h3><i class="fas fa-sync"></i> runSync()</h3>
-                    <div class="signature">void runSync(Runnable runnable)</div>
-                    <p>Ejecuta una tarea en el hilo principal de forma segura.</p>
-                    <div class="code-block">
-                        <pre class="prettyprint">MagmaLib.runSync(() -> {
-    player.sendMessage("Ejecutado en el hilo principal");
-});</pre>
-                    </div>
-                </div>
-                
-                <div class="method-card new-feature">
-                    <h3><i class="fas fa-user-friends"></i> forAllPlayers()</h3>
-                    <div class="signature">void forAllPlayers(Consumer&lt;Player&gt; action)</div>
-                    <p>Ejecuta una acción para todos los jugadores en línea con manejo seguro de errores.</p>
-                    <div class="code-block">
-                        <pre class="prettyprint">MagmaLib.forAllPlayers(player -> {
-    player.sendTitle("¡Evento importante!", "", 10, 40, 10);
-});</pre>
-                    </div>
-                </div>
-                
-                <div class="method-card new-feature">
-                    <h3><i class="fas fa-map"></i> forAllLoadedChunks()</h3>
-                    <div class="signature">void forAllLoadedChunks(Consumer&lt;Chunk&gt; action)</div>
-                    <p>Procesa todos los chunks cargados en todos los mundos.</p>
-                    <div class="code-block">
-                        <pre class="prettyprint">MagmaLib.forAllLoadedChunks(chunk -> {
-    // Optimizar chunks o realizar operaciones
-});</pre>
-                    </div>
-                </div>
-                
-                <div class="method-card new-feature">
-                    <h3><i class="fas fa-redo"></i> runWithRetry()</h3>
-                    <div class="signature">void runWithRetry(Runnable task, int maxAttempts, long delay, TimeUnit unit)</div>
-                    <p>Ejecuta una tarea con reintentos en caso de fallo.</p>
-                    <div class="code-block">
-                        <pre class="prettyprint">MagmaLib.runWithRetry(() -> {
-    connectToExternalService();
+<section class="section">
+    <div class="container">
+        <div class="section-title">
+            <h2><i class="fas fa-star"></i> Funciones Avanzadas</h2>
+        </div>
+
+        <div class="method-grid">
+            <div class="method-card new-feature">
+                <h3><i class="fas fa-redo"></i> runWithRetry()</h3>
+                <div class="signature">void runWithRetry(Runnable task, int maxAttempts, long delay, TimeUnit unit)</div>
+                <p>Ejecuta con reintentos automáticos usando scheduler (NO threads manuales).</p>
+                <div class="code-block">
+                        <pre class="prettyprint">io.github.piratemajo.magmalib.MagmaLib.runWithRetry(() -> {
+    connectToDatabase();
 }, 3, 5, TimeUnit.SECONDS);</pre>
-                    </div>
                 </div>
-                
-                <div class="method-card new-feature">
-                    <h3><i class="fas fa-stop-circle"></i> runTimerUntil()</h3>
-                    <div class="signature">Task runTimerUntil(Runnable task, long periodTicks, BooleanSupplier stopCondition)</div>
-                    <p>Ejecuta una tarea periódica hasta que se cumpla una condición.</p>
-                    <div class="code-block">
-                        <pre class="prettyprint">MagmaLib.runTimerUntil(() -> {
-    player.sendMessage("Esperando...");
-}, 20, () -> player.isOnline());</pre>
-                    </div>
+            </div>
+
+            <div class="method-card new-feature">
+                <h3><i class="fas fa-stop-circle"></i> runTimerUntil()</h3>
+                <div class="signature">Task runTimerUntil(Runnable task, long periodTicks, BooleanSupplier stopCondition)</div>
+                <p>Ejecuta periódicamente hasta que se cumpla una condición.</p>
+                <div class="code-block">
+                        <pre class="prettyprint">io.github.piratemajo.magmalib.MagmaLib.runTimerUntil(() -> {
+    player.sendTitle("Cargando...", "", 10, 40, 10);
+}, 20, () -> !player.isOnline());</pre>
                 </div>
-                
-                <div class="method-card new-feature">
-                    <h3><i class="fas fa-undo"></i> callSync()</h3>
-                    <div class="signature">&lt;T&gt; CompletableFuture&lt;T&gt; callSync(Supplier&lt;T&gt; supplier)</div>
-                    <p>Ejecuta una tarea en el hilo principal que devuelve un valor.</p>
-                    <div class="code-block">
-                        <pre class="prettyprint">MagmaLib.callSync(() -> {
+            </div>
+
+            <div class="method-card new-feature">
+                <h3><i class="fas fa-undo"></i> callSync()</h3>
+                <div class="signature">&lt;T&gt; CompletableFuture&lt;T&gt; callSync(Supplier&lt;T&gt; supplier)</div>
+                <p>Ejecuta en hilo principal y retorna valor con CompletableFuture.</p>
+                <div class="code-block">
+                        <pre class="prettyprint">io.github.piratemajo.magmalib.MagmaLib.callSync(() -> {
     return player.getInventory().getContents();
 }).thenAccept(items -> {
     // Procesar items
 });</pre>
-                    </div>
+                </div>
+            </div>
+
+            <div class="method-card new-feature">
+                <h3><i class="fas fa-user-friends"></i> forAllPlayers()</h3>
+                <div class="signature">void forAllPlayers(Consumer&lt;Player&gt; action)</div>
+                <p>Itera jugadores con manejo seguro de errores y nulls.</p>
+                <div class="code-block">
+                        <pre class="prettyprint">io.github.piratemajo.magmalib.MagmaLib.forAllPlayers(player -> {
+    player.sendTitle("¡Evento!", "", 10, 40, 10);
+});</pre>
+                </div>
+            </div>
+
+            <div class="method-card new-feature">
+                <h3><i class="fas fa-map"></i> forAllLoadedChunks()</h3>
+                <div class="signature">void forAllLoadedChunks(Consumer&lt;Chunk&gt; action)</div>
+                <p>Procesa chunks cargados (ejecuta asíncrono por defecto).</p>
+                <div class="code-block">
+                        <pre class="prettyprint">io.github.piratemajo.magmalib.MagmaLib.forAllLoadedChunks(chunk -> {
+    // Optimizar o analizar chunk
+});</pre>
+                </div>
+            </div>
+
+            <div class="method-card">
+                <h3><i class="fas fa-exchange-alt"></i> ticksToMs() / msToTicks()</h3>
+                <div class="signature">long ticksToMs(long ticks) | long msToTicks(long ms)</div>
+                <p>Utilidades de conversión de tiempo.</p>
+                <div class="code-block">
+                        <pre class="prettyprint">long ms = io.github.piratemajo.magmalib.MagmaLib.ticksToMs(20); // 1000
+long ticks = io.github.piratemajo.magmalib.MagmaLib.msToTicks(1000); // 20</pre>
                 </div>
             </div>
         </div>
-    </section>
+    </div>
+</section>
 
-    <section class="section">
-        <div class="container">
-            <div class="section-title">
-                <h2><i class="fas fa-users"></i> Manejo de Entidades</h2>
-            </div>
-            
-            <div class="entity-section">
-                <h3 style="margin-bottom: 1rem; color: var(--primary);">
-                    <i class="fas fa-lightbulb"></i> Buenas Prácticas con Entidades
-                </h3>
-                <p>Al trabajar con entidades, siempre usa <code>.with()</code> para garantizar:</p>
-                <ul style="margin: 1rem 0 1rem 2rem;">
-                    <li>Ejecución en el scheduler correcto de la entidad</li>
-                    <li>Cancelación automática si la entidad se elimina</li>
-                    <li>Optimización de rendimiento en Folia</li>
-                </ul>
-                
-                <div class="method-grid">
-                    <div class="method-card">
-                        <h3><i class="fas fa-code"></i> Ejemplo Básico</h3>
-                        <div class="code-block">
-                            <pre class="prettyprint">MagmaLib.task(() -> {
+<section class="section">
+    <div class="container">
+        <div class="section-title">
+            <h2><i class="fas fa-table"></i> Compatibilidad</h2>
+        </div>
+
+        <table class="compatibility-table">
+            <thead>
+            <tr>
+                <th>Característica</th>
+                <th>Paper/Spigot</th>
+                <th>Folia</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr><td><code>task().run()</code></td><td>✅ Bukkit Scheduler</td><td>✅ GlobalRegionScheduler</td></tr>
+            <tr><td><code>task().at(location)</code></td><td>✅ Main Thread</td><td>✅ RegionScheduler</td></tr>
+            <tr><td><code>task().with(entity)</code></td><td>✅ Main Thread</td><td>✅ EntityScheduler</td></tr>
+            <tr><td><code>task().async()</code></td><td>✅ Async Scheduler</td><td>✅ AsyncScheduler</td></tr>
+            <tr><td><code>afterTicks()</code></td><td>✅ Convertido a ticks</td><td>✅ Convertido a ticks</td></tr>
+            <tr><td><code>handleException()</code></td><td>✅ Try-catch interno</td><td>✅ Try-catch interno</td></tr>
+            </tbody>
+        </table>
+
+        <div class="note">
+            <strong>Nota:</strong> io.github.piratemajo.magmalib.MagmaLib detecta automáticamente el tipo de servidor y usa el scheduler apropiado.
+            Tu código funciona en ambos sin modificaciones.
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="section-title">
+            <h2><i class="fas fa-users"></i> Manejo de Entidades</h2>
+        </div>
+
+        <div class="entity-section">
+            <h3 style="margin-bottom: 1rem; color: var(--primary);">
+                <i class="fas fa-lightbulb"></i> Mejores Prácticas
+            </h3>
+            <p>Siempre usa <code>.with(entity)</code> para operaciones con entidades en Folia:</p>
+            <ul style="margin: 1rem 0 1rem 2rem;">
+                <li>✅ Ejecución en el scheduler correcto de la entidad</li>
+                <li>✅ Cancelación automática si la entidad se elimina</li>
+                <li>✅ Prevención de race conditions en Folia</li>
+                <li>✅ Fallback seguro a Paper si no es Folia</li>
+            </ul>
+
+            <div class="method-grid">
+                <div class="method-card">
+                    <h3><i class="fas fa-code"></i> Ejemplo Básico</h3>
+                    <div class="code-block">
+                            <pre class="prettyprint">io.github.piratemajo.magmalib.MagmaLib.task(() -> {
     if (entity.isValid()) {
         entity.setCustomName("Procesado");
     }
 })
 .with(entity)
 .run();</pre>
-                        </div>
                     </div>
-                    
-                    <div class="method-card">
-                        <h3><i class="fas fa-sync"></i> Tarea Repetitiva</h3>
-                        <div class="code-block">
-                            <pre class="prettyprint">MagmaLib.task(() -> {
-    if (zombie.isValid()) {
-        zombie.setTarget(player);
-    }
-})
-.with(zombie)
-.every(1, TimeUnit.SECONDS)
-.run();</pre>
-                        </div>
-                    </div>
-                    
-                    <div class="method-card">
-                        <h3><i class="fas fa-exclamation-triangle"></i> Validación Avanzada</h3>
-                        <p>Combina validaciones con manejo de errores:</p>
-                        <div class="code-block">
-                            <pre class="prettyprint">MagmaLib.task(() -> {
+                </div>
+
+                <div class="method-card">
+                    <h3><i class="fas fa-shield-alt"></i> Validación Avanzada</h3>
+                    <div class="code-block">
+                            <pre class="prettyprint">io.github.piratemajo.magmalib.MagmaLib.task(() -> {
     if (!entity.isValid() || entity.isDead()) return;
-    
-    // Operación segura
     entity.setGlowing(true);
 })
 .with(entity)
-.handleException(e -> {
-    plugin.getLogger().warning("Error con entidad: " + e.getMessage());
-})
 .cancelIf(() -> !player.isOnline())
+.handleException(e -> {
+    plugin.getLogger().warning("Error: " + e.getMessage());
+})
 .run();</pre>
-                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </section>
+    </div>
+</section>
 
-    <section class="section">
-        <div class="container">
-            <div class="section-title">
-                <h2><i class="fas fa-bolt"></i> Métodos de Utilidad</h2>
-            </div>
-            
-            <div class="method-grid">
-                <div class="method-card">
-                    <h3><i class="fas fa-forward"></i> runNextTick()</h3>
-                    <div class="signature">void runNextTick(Runnable runnable)</div>
-                    <p>Ejecuta una tarea en el próximo tick del servidor.</p>
-                    <div class="code-block">
-                        <pre class="prettyprint">MagmaLib.runNextTick(() -> {
-    player.sendMessage("Cargado!");
-});</pre>
-                    </div>
-                </div>
-                
-                <div class="method-card">
-                    <h3><i class="fas fa-hourglass-half"></i> runLater()</h3>
-                    <div class="signature">void runLater(Runnable runnable, long delay, TimeUnit unit)</div>
-                    <p>Ejecuta una tarea después de un retardo específico.</p>
-                    <div class="code-block">
-                        <pre class="prettyprint">MagmaLib.runLater(() -> {
-    player.sendMessage("Después de 5 segundos");
-}, 5, TimeUnit.SECONDS);</pre>
-                    </div>
-                </div>
-                
-                <div class="method-card">
-                    <h3><i class="fas fa-sync"></i> runAsync()</h3>
-                    <div class="signature">CompletableFuture&lt;Void&gt; runAsync(Runnable runnable)</div>
-                    <p>Ejecuta una tarea asíncrona con soporte para CompletableFuture.</p>
-                    <div class="code-block">
-                        <pre class="prettyprint">MagmaLib.runAsync(() -> {
-    // Proceso pesado
-}).thenRun(() -> {
-    // Al completar
-});</pre>
-                    </div>
-                </div>
-                
-                <div class="method-card">
-                    <h3><i class="fas fa-database"></i> callAsync()</h3>
-                    <div class="signature">&lt;T&gt; CompletableFuture&lt;T&gt; callAsync(Supplier&lt;T&gt; supplier)</div>
-                    <p>Ejecuta una tarea asíncrona que devuelve un valor.</p>
-                    <div class="code-block">
-                        <pre class="prettyprint">MagmaLib.callAsync(() -> {
-    return fetchFromDatabase();
-}).thenAccept(result -> {
-    player.sendMessage("Datos: " + result);
-});</pre>
-                    </div>
-                </div>
-                
-                <div class="method-card">
-                    <h3><i class="fas fa-map"></i> executeIfLoaded()</h3>
-                    <div class="signature">void executeIfLoaded(Location location, Runnable task)</div>
-                    <p>Ejecuta una tarea solo si el chunk en la ubicación está cargado.</p>
-                    <div class="code-block">
-                        <pre class="prettyprint">MagmaLib.executeIfLoaded(block.getLocation(), () -> {
-    block.setType(Material.DIAMOND_BLOCK);
-});</pre>
-                    </div>
-                </div>
-            </div>
+<section class="section">
+    <div class="container">
+        <div class="section-title">
+            <h2><i class="fas fa-download"></i> Instalación</h2>
         </div>
-    </section>
 
-    <section class="section">
-        <div class="container">
-            <div class="section-title">
-                <h2><i class="fas fa-tasks"></i> Manejo de Tareas</h2>
-            </div>
-            
-            <div class="method-grid">
-                <div class="method-card">
-                    <h3><i class="fas fa-ban"></i> cancel()</h3>
-                    <div class="signature">void cancel()</div>
-                    <p>Cancela una tarea en ejecución (especialmente útil para tareas repetitivas).</p>
-                    <div class="code-block">
-                        <pre class="prettyprint">Task task = MagmaLib.task(...).every(...).run();
+        <div class="method-grid">
+            <div class="method-card">
+                <h3><i class="fab fa-maven"></i> Maven</h3>
+                <div class="code-block">
+                        <pre class="prettyprint">&lt;repository&gt;
+    &lt;id&gt;jitpack&lt;/id&gt;
+    &lt;url&gt;https://jitpack.io&lt;/url&gt;
+&lt;/repository&gt;
 
-// Al desactivar el plugin
-task.cancel();</pre>
-                    </div>
+&lt;dependency&gt;
+    &lt;groupId&gt;com.github.tu-usuario&lt;/groupId&gt;
+    &lt;artifactId&gt;io.github.piratemajo.magmalib.MagmaLib&lt;/artifactId&gt;
+    &lt;version&gt;v1.1&lt;/version&gt;
+    &lt;scope&gt;provided&lt;/scope&gt;
+&lt;/dependency&gt;</pre>
                 </div>
-                
-                <div class="method-card">
-                    <h3><i class="fas fa-info-circle"></i> isCancelled()</h3>
-                    <div class="signature">boolean isCancelled()</div>
-                    <p>Verifica si una tarea ha sido cancelada.</p>
-                    <div class="code-block">
-                        <pre class="prettyprint">if (!task.isCancelled()) {
-    // La tarea sigue activa
+            </div>
+
+            <div class="method-card">
+                <h3><i class="fab fa-gradle-cap"></i> Gradle</h3>
+                <div class="code-block">
+                        <pre class="prettyprint">repositories {
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    compileOnly 'com.github.tu-usuario:io.github.piratemajo.magmalib.MagmaLib:v1.1'
 }</pre>
-                    </div>
-                </div>
-                
-                <div class="method-card">
-                    <h3><i class="fas fa-play-circle"></i> isRunning()</h3>
-                    <div class="signature">boolean isRunning()</div>
-                    <p>Verifica si una tarea está actualmente en ejecución.</p>
-                    <div class="code-block">
-                        <pre class="prettyprint">if (task.isRunning()) {
-    // La tarea está activa
-}</pre>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="note">
-                <strong><i class="fas fa-lightbulb"></i> Mejor práctica:</strong> 
-                Siempre almacena referencias a tareas repetitivas y cancélalas en <code>onDisable()</code>.
-            </div>
-        </div>
-    </section>
-
-    <section class="section">
-        <div class="container">
-            <div class="section-title">
-                <h2><i class="fas fa-exchange-alt"></i> Migración de Paper a Folia</h2>
-            </div>
-            
-            <div class="method-grid">
-                <div class="method-card">
-                    <h3><i class="fas fa-code"></i> Tarea simple</h3>
-                    <div class="code-block">
-                        <pre class="prettyprint">// Paper
-Bukkit.getScheduler().runTask(plugin, runnable);
-
-// MagmaLib
-MagmaLib.task(runnable).run();</pre>
-                    </div>
-                </div>
-                
-                <div class="method-card">
-                    <h3><i class="fas fa-history"></i> Tarea repetitiva</h3>
-                    <div class="code-block">
-                        <pre class="prettyprint">// Paper
-BukkitTask task = Bukkit.getScheduler()
-    .runTaskTimer(plugin, runnable, 0, 20);
-
-// MagmaLib
-Task task = MagmaLib.task(runnable)
-    .everyTicks(20)
-    .run();</pre>
-                    </div>
-                </div>
-                
-                <div class="method-card">
-                    <h3><i class="fas fa-users"></i> Operación con entidad</h3>
-                    <div class="code-block">
-                        <pre class="prettyprint">// Paper (peligroso en Folia)
-Bukkit.getScheduler().runTask(plugin, () -> {
-    entity.setCustomName("Nombre");
-});
-
-// MagmaLib (seguro)
-MagmaLib.task(() -> entity.setCustomName("Nombre"))
-    .with(entity)
-    .run();</pre>
-                    </div>
-                </div>
-                
-                <div class="method-card">
-                    <h3><i class="fas fa-bolt"></i> Tarea asíncrona</h3>
-                    <div class="code-block">
-                        <pre class="prettyprint">// Paper
-Bukkit.getScheduler().runTaskAsynchronously(plugin, runnable);
-
-// MagmaLib
-MagmaLib.task(runnable).async().run();</pre>
-                    </div>
                 </div>
             </div>
         </div>
-    </section>
+    </div>
+</section>
 
-    <footer>
-        <div class="container">
-            <div class="logo" style="justify-content: center; font-size: 1.5rem; color: white;">
-                <i class="fas fa-bolt"></i>
-                <span>MagmaLib v1.0</span>
-            </div>
-            <p>Documentación completa | Nuevas funciones | MIT License</p>
-            <div class="footer-links">
-                <a href="#" style="color: #a0aec0;">GitHub</a>
-                <a href="#" style="color: #a0aec0;">Ejemplos Avanzados</a>
-                <a href="#" style="color: #a0aec0;">Descargar</a>
-            </div>
+<footer>
+    <div class="container">
+        <p>io.github.piratemajo.magmalib.MagmaLib v1.1 &copy; 2026 - Liberado bajo licencia MIT</p>
+        <div class="footer-links">
+            <a href="https://github.com/MagmaEnginers/MagmaLib" target="_blank">
+                <i class="fab fa-github"></i> GitHub
+            </a>
+            <a href="#" onclick="alert('Próximamente'); return false;">
+                <i class="fab fa-discord"></i> Discord
+            </a>
+            <a href="#" onclick="alert('Próximamente'); return false;">
+                <i class="fas fa-history"></i> Changelog
+            </a>
+            <a href="#" onclick="alert('Próximamente'); return false;">
+                <i class="fas fa-book"></i> Wiki
+            </a>
         </div>
-    </footer>
+    </div>
+</footer>
 
-    <script>
-        PR.prettyPrint();
-    </script>
+<script>
+    // Toggle tema oscuro/claro
+    function toggleTheme() {
+        const html = document.documentElement;
+        const current = html.getAttribute('data-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+
+        // Actualizar ícono del botón
+        const btn = document.querySelector('.theme-toggle i');
+        btn.className = next === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+
+    // Cargar tema guardado
+    document.addEventListener('DOMContentLoaded', () => {
+        const saved = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', saved);
+        const btn = document.querySelector('.theme-toggle i');
+        btn.className = saved === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    });
+
+    // Búsqueda simple (placeholder para futura implementación)
+    document.addEventListener('DOMContentLoaded', () => {
+        const searchInput = document.querySelector('.search-bar input');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                document.querySelectorAll('.method-card').forEach(card => {
+                    const text = card.textContent.toLowerCase();
+                    card.style.display = text.includes(term) ? '' : 'none';
+                });
+            });
+        }
+    });
+</script>
 </body>
 </html>

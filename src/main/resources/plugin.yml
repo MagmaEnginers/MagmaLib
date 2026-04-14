@@ -1,4 +1,4 @@
-name: MagmaLib
-version: '1.0-Oficial'
-main: es.javierdev.magmaLib.MagmaLib
+name: io.github.piratemajo.magmalib.MagmaLib
+version: ${project.version}
+main: io.github.piratemajo.magmalib.MagmaLib
 api-version: '1.21'
