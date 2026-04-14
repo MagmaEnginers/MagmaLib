@@ -1,0 +1,4 @@
+name: MagmaLib
+version: '1.0-Oficial'
+main: es.javierdev.magmaLib.MagmaLib
+api-version: '1.21'
