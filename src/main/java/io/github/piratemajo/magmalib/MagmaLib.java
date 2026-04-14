@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.*;
 
 /**
- * io.github.piratemajo.magmalib.MagmaLib - API moderna para scheduling compatible con Paper y Folia
+ * MagmaLib - API moderna para scheduling compatible con Paper y Folia
  * <p>
  * Características principales:
  * <ul>
@@ -32,7 +32,7 @@ public class MagmaLib {
     private static Boolean isFoliaCache = null;
 
     /**
-     * Inicializa io.github.piratemajo.magmalib.MagmaLib con tu plugin principal.
+     * Inicializa MagmaLib con tu plugin principal.
      * Llamar en {@link JavaPlugin#onEnable()}.
      *
      * @param plugin El plugin principal
@@ -214,7 +214,7 @@ public class MagmaLib {
                 if (exceptionHandler != null) {
                     exceptionHandler.accept(e);
                 } else {
-                    plugin.getLogger().severe("Error en tarea io.github.piratemajo.magmalib.MagmaLib: " + e.getMessage());
+                    plugin.getLogger().severe("Error en tarea MagmaLib: " + e.getMessage());
                     e.printStackTrace();
                 }
             }
