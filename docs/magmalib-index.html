@@ -841,50 +841,6 @@ for (Entity entity : entities) {
     </div>
 </section>
 
-<section class="section">
-    <div class="container">
-        <div class="section-title">
-            <h2><i class="fas fa-download"></i> Instalación</h2>
-        </div>
-
-        <div class="method-grid">
-            <div class="method-card">
-                <h3><i class="fab fa-maven"></i> Maven</h3>
-                <div class="code-block">
-                    <pre class="prettyprint">&lt;repository&gt;
-    &lt;id&gt;jitpack&lt;/id&gt;
-    &lt;url&gt;https://jitpack.io&lt;/url&gt;
-&lt;/repository&gt;
-
-&lt;dependency&gt;
-    &lt;groupId&gt;io.github.piratemajo&lt;/groupId&gt;
-    &lt;artifactId&gt;magmalib&lt;/artifactId&gt;
-    &lt;version&gt;v1.2&lt;/version&gt;
-    &lt;scope&gt;provided&lt;/scope&gt;
-&lt;/dependency&gt;</pre>
-                </div>
-            </div>
-
-            <div class="method-card">
-                <h3><i class="fab fa-gradle-cap"></i> Gradle</h3>
-                <div class="code-block">
-                    <pre class="prettyprint">repositories {
-    maven { url 'https://jitpack.io' }
-}
-
-dependencies {
-    compileOnly 'io.github.piratemajo:magmalib:v1.2'
-}</pre>
-                </div>
-            </div>
-        </div>
-
-        <div class="note" style="margin-top: 1rem;">
-            <strong>Importante:</strong> Si usas MagmaLib en un plugin público, considera relajar el paquete en tu build
-            para evitar conflictos: <code>io.github.piratemajo.magmalib</code> → <code>tu.plugin.libs.magmalib</code>
-        </div>
-    </div>
-</section>
 
 <section class="section">
     <div class="container">

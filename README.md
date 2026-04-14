@@ -116,57 +116,6 @@ for (Location loc : affectedBlocks) {
 
 ---
 
-## 📦 Instalación
-
-### Maven
-```xml
-<repositories>
-    <repository>
-        <id>jitpack.io</id>
-        <url>https://jitpack.io</url>
-    </repository>
-</repositories>
-
-<dependencies>
-    <dependency>
-        <groupId>io.github.piratemajo</groupId>
-        <artifactId>magmalib</artifactId>
-        <version>v1.2</version>
-        <scope>provided</scope>
-    </dependency>
-</dependencies>
-```
-
-### Gradle (Groovy)
-```groovy
-repositories {
-    maven { url 'https://jitpack.io' }
-}
-
-dependencies {
-    compileOnly 'io.github.piratemajo:magmalib:v1.2'
-}
-```
-
-### Gradle (Kotlin DSL)
-```kotlin
-repositories {
-    maven("https://jitpack.io")
-}
-
-dependencies {
-    compileOnly("io.github.piratemajo:magmalib:v1.2")
-}
-```
-
-> ⚠️ **Para plugins públicos**: Aplica relocation en tu build para evitar conflictos:
-> ```groovy
-> shadowJar {
->     relocate 'io.github.piratemajo.magmalib', 'tu.plugin.libs.magmalib'
-> }
-> ```
-
----
 
 ## 🔧 API Task Builder
 
