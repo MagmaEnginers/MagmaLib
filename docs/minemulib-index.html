@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MinemuLib v1.0 - Documentación Completa</title>
+    <title>MagmaLib v1.0 - Documentación Completa</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/run_prettify.js"></script>
     <style>
@@ -220,7 +220,7 @@
             <nav>
                 <div class="logo">
                     <i class="fas fa-bolt"></i>
-                    <span>MinemuLib v1.0</span>
+                    <span>MagmaLib v1.0</span>
                 </div>
             </nav>
         </div>
@@ -228,7 +228,7 @@
 
     <section class="hero">
         <div class="container">
-            <h1>Documentación Completa de MinemuLib</h1>
+            <h1>Documentación Completa de MagmaLib</h1>
             <p>La solución profesional para migrar plugins de Paper a Folia con una API moderna y eficiente</p>
         </div>
     </section>
@@ -242,12 +242,12 @@
             <div class="method-grid">
                 <div class="method-card">
                     <h3><i class="fas fa-cog"></i> init()</h3>
-                    <div class="signature">MinemuLib.init(Plugin plugin)</div>
+                    <div class="signature">MagmaLib.init(Plugin plugin)</div>
                     <p>Inicializa la librería con tu plugin principal.</p>
                     <div class="code-block">
                         <pre class="prettyprint">@Override
 public void onEnable() {
-    MinemuLib.init(this);
+    MagmaLib.init(this);
 }</pre>
                     </div>
                 </div>
@@ -257,7 +257,7 @@ public void onEnable() {
                     <div class="signature">boolean isFolia()</div>
                     <p>Determina si el servidor está ejecutando Folia.</p>
                     <div class="code-block">
-                        <pre class="prettyprint">if (MinemuLib.isFolia()) {
+                        <pre class="prettyprint">if (MagmaLib.isFolia()) {
     // Código específico para Folia
 }</pre>
                     </div>
@@ -278,7 +278,7 @@ public void onEnable() {
                     <div class="signature">TaskBuilder task(Runnable runnable)</div>
                     <p>Crea una nueva tarea con el Runnable especificado.</p>
                     <div class="code-block">
-                        <pre class="prettyprint">MinemuLib.task(() -> {
+                        <pre class="prettyprint">MagmaLib.task(() -> {
     player.sendMessage("¡Hola!");
 });</pre>
                     </div>
@@ -382,7 +382,7 @@ public void onEnable() {
                     <div class="signature">void runSync(Runnable runnable)</div>
                     <p>Ejecuta una tarea en el hilo principal de forma segura.</p>
                     <div class="code-block">
-                        <pre class="prettyprint">MinemuLib.runSync(() -> {
+                        <pre class="prettyprint">MagmaLib.runSync(() -> {
     player.sendMessage("Ejecutado en el hilo principal");
 });</pre>
                     </div>
@@ -393,7 +393,7 @@ public void onEnable() {
                     <div class="signature">void forAllPlayers(Consumer&lt;Player&gt; action)</div>
                     <p>Ejecuta una acción para todos los jugadores en línea con manejo seguro de errores.</p>
                     <div class="code-block">
-                        <pre class="prettyprint">MinemuLib.forAllPlayers(player -> {
+                        <pre class="prettyprint">MagmaLib.forAllPlayers(player -> {
     player.sendTitle("¡Evento importante!", "", 10, 40, 10);
 });</pre>
                     </div>
@@ -404,7 +404,7 @@ public void onEnable() {
                     <div class="signature">void forAllLoadedChunks(Consumer&lt;Chunk&gt; action)</div>
                     <p>Procesa todos los chunks cargados en todos los mundos.</p>
                     <div class="code-block">
-                        <pre class="prettyprint">MinemuLib.forAllLoadedChunks(chunk -> {
+                        <pre class="prettyprint">MagmaLib.forAllLoadedChunks(chunk -> {
     // Optimizar chunks o realizar operaciones
 });</pre>
                     </div>
@@ -415,7 +415,7 @@ public void onEnable() {
                     <div class="signature">void runWithRetry(Runnable task, int maxAttempts, long delay, TimeUnit unit)</div>
                     <p>Ejecuta una tarea con reintentos en caso de fallo.</p>
                     <div class="code-block">
-                        <pre class="prettyprint">MinemuLib.runWithRetry(() -> {
+                        <pre class="prettyprint">MagmaLib.runWithRetry(() -> {
     connectToExternalService();
 }, 3, 5, TimeUnit.SECONDS);</pre>
                     </div>
@@ -426,7 +426,7 @@ public void onEnable() {
                     <div class="signature">Task runTimerUntil(Runnable task, long periodTicks, BooleanSupplier stopCondition)</div>
                     <p>Ejecuta una tarea periódica hasta que se cumpla una condición.</p>
                     <div class="code-block">
-                        <pre class="prettyprint">MinemuLib.runTimerUntil(() -> {
+                        <pre class="prettyprint">MagmaLib.runTimerUntil(() -> {
     player.sendMessage("Esperando...");
 }, 20, () -> player.isOnline());</pre>
                     </div>
@@ -437,7 +437,7 @@ public void onEnable() {
                     <div class="signature">&lt;T&gt; CompletableFuture&lt;T&gt; callSync(Supplier&lt;T&gt; supplier)</div>
                     <p>Ejecuta una tarea en el hilo principal que devuelve un valor.</p>
                     <div class="code-block">
-                        <pre class="prettyprint">MinemuLib.callSync(() -> {
+                        <pre class="prettyprint">MagmaLib.callSync(() -> {
     return player.getInventory().getContents();
 }).thenAccept(items -> {
     // Procesar items
@@ -469,7 +469,7 @@ public void onEnable() {
                     <div class="method-card">
                         <h3><i class="fas fa-code"></i> Ejemplo Básico</h3>
                         <div class="code-block">
-                            <pre class="prettyprint">MinemuLib.task(() -> {
+                            <pre class="prettyprint">MagmaLib.task(() -> {
     if (entity.isValid()) {
         entity.setCustomName("Procesado");
     }
@@ -482,7 +482,7 @@ public void onEnable() {
                     <div class="method-card">
                         <h3><i class="fas fa-sync"></i> Tarea Repetitiva</h3>
                         <div class="code-block">
-                            <pre class="prettyprint">MinemuLib.task(() -> {
+                            <pre class="prettyprint">MagmaLib.task(() -> {
     if (zombie.isValid()) {
         zombie.setTarget(player);
     }
@@ -497,7 +497,7 @@ public void onEnable() {
                         <h3><i class="fas fa-exclamation-triangle"></i> Validación Avanzada</h3>
                         <p>Combina validaciones con manejo de errores:</p>
                         <div class="code-block">
-                            <pre class="prettyprint">MinemuLib.task(() -> {
+                            <pre class="prettyprint">MagmaLib.task(() -> {
     if (!entity.isValid() || entity.isDead()) return;
     
     // Operación segura
@@ -528,7 +528,7 @@ public void onEnable() {
                     <div class="signature">void runNextTick(Runnable runnable)</div>
                     <p>Ejecuta una tarea en el próximo tick del servidor.</p>
                     <div class="code-block">
-                        <pre class="prettyprint">MinemuLib.runNextTick(() -> {
+                        <pre class="prettyprint">MagmaLib.runNextTick(() -> {
     player.sendMessage("Cargado!");
 });</pre>
                     </div>
@@ -539,7 +539,7 @@ public void onEnable() {
                     <div class="signature">void runLater(Runnable runnable, long delay, TimeUnit unit)</div>
                     <p>Ejecuta una tarea después de un retardo específico.</p>
                     <div class="code-block">
-                        <pre class="prettyprint">MinemuLib.runLater(() -> {
+                        <pre class="prettyprint">MagmaLib.runLater(() -> {
     player.sendMessage("Después de 5 segundos");
 }, 5, TimeUnit.SECONDS);</pre>
                     </div>
@@ -550,7 +550,7 @@ public void onEnable() {
                     <div class="signature">CompletableFuture&lt;Void&gt; runAsync(Runnable runnable)</div>
                     <p>Ejecuta una tarea asíncrona con soporte para CompletableFuture.</p>
                     <div class="code-block">
-                        <pre class="prettyprint">MinemuLib.runAsync(() -> {
+                        <pre class="prettyprint">MagmaLib.runAsync(() -> {
     // Proceso pesado
 }).thenRun(() -> {
     // Al completar
@@ -563,7 +563,7 @@ public void onEnable() {
                     <div class="signature">&lt;T&gt; CompletableFuture&lt;T&gt; callAsync(Supplier&lt;T&gt; supplier)</div>
                     <p>Ejecuta una tarea asíncrona que devuelve un valor.</p>
                     <div class="code-block">
-                        <pre class="prettyprint">MinemuLib.callAsync(() -> {
+                        <pre class="prettyprint">MagmaLib.callAsync(() -> {
     return fetchFromDatabase();
 }).thenAccept(result -> {
     player.sendMessage("Datos: " + result);
@@ -576,7 +576,7 @@ public void onEnable() {
                     <div class="signature">void executeIfLoaded(Location location, Runnable task)</div>
                     <p>Ejecuta una tarea solo si el chunk en la ubicación está cargado.</p>
                     <div class="code-block">
-                        <pre class="prettyprint">MinemuLib.executeIfLoaded(block.getLocation(), () -> {
+                        <pre class="prettyprint">MagmaLib.executeIfLoaded(block.getLocation(), () -> {
     block.setType(Material.DIAMOND_BLOCK);
 });</pre>
                     </div>
@@ -597,7 +597,7 @@ public void onEnable() {
                     <div class="signature">void cancel()</div>
                     <p>Cancela una tarea en ejecución (especialmente útil para tareas repetitivas).</p>
                     <div class="code-block">
-                        <pre class="prettyprint">Task task = MinemuLib.task(...).every(...).run();
+                        <pre class="prettyprint">Task task = MagmaLib.task(...).every(...).run();
 
 // Al desactivar el plugin
 task.cancel();</pre>
@@ -647,8 +647,8 @@ task.cancel();</pre>
                         <pre class="prettyprint">// Paper
 Bukkit.getScheduler().runTask(plugin, runnable);
 
-// MinemuLib
-MinemuLib.task(runnable).run();</pre>
+// MagmaLib
+MagmaLib.task(runnable).run();</pre>
                     </div>
                 </div>
                 
@@ -659,8 +659,8 @@ MinemuLib.task(runnable).run();</pre>
 BukkitTask task = Bukkit.getScheduler()
     .runTaskTimer(plugin, runnable, 0, 20);
 
-// MinemuLib
-Task task = MinemuLib.task(runnable)
+// MagmaLib
+Task task = MagmaLib.task(runnable)
     .everyTicks(20)
     .run();</pre>
                     </div>
@@ -674,8 +674,8 @@ Bukkit.getScheduler().runTask(plugin, () -> {
     entity.setCustomName("Nombre");
 });
 
-// MinemuLib (seguro)
-MinemuLib.task(() -> entity.setCustomName("Nombre"))
+// MagmaLib (seguro)
+MagmaLib.task(() -> entity.setCustomName("Nombre"))
     .with(entity)
     .run();</pre>
                     </div>
@@ -687,8 +687,8 @@ MinemuLib.task(() -> entity.setCustomName("Nombre"))
                         <pre class="prettyprint">// Paper
 Bukkit.getScheduler().runTaskAsynchronously(plugin, runnable);
 
-// MinemuLib
-MinemuLib.task(runnable).async().run();</pre>
+// MagmaLib
+MagmaLib.task(runnable).async().run();</pre>
                     </div>
                 </div>
             </div>
@@ -699,7 +699,7 @@ MinemuLib.task(runnable).async().run();</pre>
         <div class="container">
             <div class="logo" style="justify-content: center; font-size: 1.5rem; color: white;">
                 <i class="fas fa-bolt"></i>
-                <span>MinemuLib v1.0</span>
+                <span>MagmaLib v1.0</span>
             </div>
             <p>Documentación completa | Nuevas funciones | MIT License</p>
             <div class="footer-links">
