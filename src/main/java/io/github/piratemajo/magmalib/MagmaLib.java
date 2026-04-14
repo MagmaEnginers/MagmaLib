@@ -18,13 +18,14 @@ import java.util.function.*;
  * Características principales:
  * <ul>
  *   <li>Task Builder fluent para configuración intuitiva</li>
- *   <li>Detección automática de Folia/Paper</li>
- *   <li>Manejo seguro de chunks y entidades</li>
- *   <li>Utilidades para operaciones comunes</li>
+ *   <li>API directa de alto rendimiento para hot paths</li>
+ *   <li>Detección automática de Folia/Paper con caché</li>
+ *   <li>Manejo seguro de chunks y entidades con opción unsafe</li>
+ *   <li>Utilidades avanzadas: runTimerUntil, runWithRetry, forAllPlayers</li>
  * </ul>
  *
  * @author Piratemajo
- * @version 1.1
+ * @version 1.2
  */
 public class MagmaLib {
 
@@ -66,12 +67,6 @@ public class MagmaLib {
 
     // ==================== TASK BUILDER ====================
 
-    /**
-     * Crea un nuevo TaskBuilder para configurar una tarea.
-     *
-     * @param runnable El código a ejecutar
-     * @return TaskBuilder para configuración fluent
-     */
     public static TaskBuilder task(Runnable runnable) {
         return new TaskBuilder(runnable);
     }
@@ -84,6 +79,7 @@ public class MagmaLib {
         private long period = -1;
         private boolean async = false;
         private boolean cancelIfUnloaded = true;
+        private boolean unsafe = false;
         private BooleanSupplier cancelCondition;
         private Consumer<Exception> exceptionHandler;
 
@@ -91,108 +87,74 @@ public class MagmaLib {
             this.runnable = runnable;
         }
 
-        /**
-         * Ejecuta la tarea en la región del chunk de esta ubicación (Folia)
-         * o en el hilo principal (Paper).
-         */
         public TaskBuilder at(Location location) {
             this.location = location;
             return this;
         }
 
-        /**
-         * Vincula la tarea a una entidad para ejecución en su scheduler (Folia).
-         */
         public TaskBuilder with(Entity entity) {
             this.entity = entity;
             return this;
         }
 
-        /**
-         * Retrasa la ejecución.
-         *
-         * @param delay Tiempo de espera
-         * @param unit Unidad temporal
-         */
         public TaskBuilder after(long delay, TimeUnit unit) {
             this.delay = unit.toMillis(delay);
             return this;
         }
 
-        /**
-         * Retraso en ticks de Minecraft (1 tick = 50ms).
-         *
-         * @param ticks Ticks de espera
-         */
         public TaskBuilder afterTicks(long ticks) {
-            this.delay = ticks * 50;
+            this.delay = ticks * 50L;
             return this;
         }
 
-        /**
-         * Configura la tarea como repetitiva.
-         *
-         * @param period Intervalo entre ejecuciones
-         * @param unit Unidad temporal
-         */
         public TaskBuilder every(long period, TimeUnit unit) {
             this.period = unit.toMillis(period);
             return this;
         }
 
-        /**
-         * Intervalo repetitivo en ticks de Minecraft.
-         *
-         * @param ticks Ticks entre ejecuciones
-         */
         public TaskBuilder everyTicks(long ticks) {
-            this.period = ticks * 50;
+            this.period = ticks * 50L;
             return this;
         }
 
-        /**
-         * Ejecuta la tarea en hilo asíncrono.
-         */
         public TaskBuilder async() {
             this.async = true;
             return this;
         }
 
-        /**
-         * Cancela la tarea si el chunk no está cargado (solo para .at()).
-         *
-         * @param cancel true para cancelar si no está cargado
-         */
         public TaskBuilder cancelIfUnloaded(boolean cancel) {
             this.cancelIfUnloaded = cancel;
             return this;
         }
 
         /**
-         * Cancela la tarea si se cumple la condición.
+         * ⚠️ MODO ALTO RENDIMIENTO: Desactiva validaciones de seguridad.
+         * <p>
+         * Úsalo SOLO en hot paths donde garantizas:
+         * <ul>
+         *   <li>Location.world != null</li>
+         *   <li>Chunk está cargado (para .at())</li>
+         *   <li>Entity.isValid() == true (para .with())</li>
+         * </ul>
+         * Si no se cumplen, pueden ocurrir NullPointerException o IllegalStateException.
          *
-         * @param condition Condición de cancelación
+         * @return this para chaining
          */
+        public TaskBuilder unsafe() {
+            this.unsafe = true;
+            return this;
+        }
+
         public TaskBuilder cancelIf(BooleanSupplier condition) {
             this.cancelCondition = condition;
             return this;
         }
 
-        /**
-         * Manejador personalizado para excepciones.
-         *
-         * @param handler Consumer que procesa la excepción
-         */
         public TaskBuilder handleException(Consumer<Exception> handler) {
             this.exceptionHandler = handler;
             return this;
         }
 
-        /**
-         * Ejecuta la tarea configurada.
-         *
-         * @return Objeto Task para manejo posterior
-         */
         public Task run() {
             if (async) {
                 return runAsync();
@@ -224,27 +186,21 @@ public class MagmaLib {
             if (isFolia()) {
                 AsyncScheduler scheduler = Bukkit.getAsyncScheduler();
                 if (period > 0) {
-                    ScheduledTask task = scheduler.runAtFixedRate(plugin,
-                            t -> executeSafely(), delay, period, TimeUnit.MILLISECONDS);
-                    return new FoliaTask(task);
+                    return new FoliaTask(scheduler.runAtFixedRate(plugin, t -> executeSafely(), delay, period, TimeUnit.MILLISECONDS));
                 } else if (delay > 0) {
-                    ScheduledTask task = scheduler.runDelayed(plugin,
-                            t -> executeSafely(), delay, TimeUnit.MILLISECONDS);
-                    return new FoliaTask(task);
+                    return new FoliaTask(scheduler.runDelayed(plugin, t -> executeSafely(), delay, TimeUnit.MILLISECONDS));
                 } else {
                     scheduler.runNow(plugin, t -> executeSafely());
                     return new EmptyTask();
                 }
             } else {
                 BukkitTask task;
-                long delayTicks = delay / 50;
+                long delayTicks = delay / 50L;
                 if (period > 0) {
-                    long periodTicks = period / 50;
-                    task = Bukkit.getScheduler().runTaskTimerAsynchronously(
-                            plugin, this::executeSafely, delayTicks, periodTicks);
+                    long periodTicks = period / 50L;
+                    task = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::executeSafely, delayTicks, periodTicks);
                 } else if (delay > 0) {
-                    task = Bukkit.getScheduler().runTaskLaterAsynchronously(
-                            plugin, this::executeSafely, delayTicks);
+                    task = Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, this::executeSafely, delayTicks);
                 } else {
                     task = Bukkit.getScheduler().runTaskAsynchronously(plugin, this::executeSafely);
                 }
@@ -255,35 +211,30 @@ public class MagmaLib {
         private Task runAtLocation() {
             if (isFolia()) {
                 RegionScheduler scheduler = Bukkit.getRegionScheduler();
-                World world = location.getWorld();
 
-                if (world == null) {
-                    plugin.getLogger().warning("Location world is null, task cancelled");
-                    return new EmptyTask();
+                if (!unsafe) {
+                    World world = location.getWorld();
+                    if (world == null) {
+                        plugin.getLogger().warning("Location world is null, task cancelled");
+                        return new EmptyTask();
+                    }
+                    if (cancelIfUnloaded && !world.isChunkLoaded(location.getBlockX() >> 4, location.getBlockZ() >> 4)) {
+                        return new EmptyTask();
+                    }
                 }
 
-                if (cancelIfUnloaded && !world.isChunkLoaded(
-                        location.getBlockX() >> 4, location.getBlockZ() >> 4)) {
-                    return new EmptyTask();
-                }
-
-                long delayTicks = delay / 50;
-                long periodTicks = period / 50;
+                long delayTicks = delay / 50L;
+                long periodTicks = period / 50L;
 
                 if (period > 0) {
-                    ScheduledTask task = scheduler.runAtFixedRate(plugin, location,
-                            t -> executeSafely(), delayTicks, periodTicks);
-                    return new FoliaTask(task);
+                    return new FoliaTask(scheduler.runAtFixedRate(plugin, location, t -> executeSafely(), delayTicks, periodTicks));
                 } else if (delay > 0) {
-                    ScheduledTask task = scheduler.runDelayed(plugin, location,
-                            t -> executeSafely(), delayTicks);
-                    return new FoliaTask(task);
+                    return new FoliaTask(scheduler.runDelayed(plugin, location, t -> executeSafely(), delayTicks));
                 } else {
                     scheduler.run(plugin, location, t -> executeSafely());
                     return new EmptyTask();
                 }
             } else {
-                // En Paper, at() equivale a runGlobal()
                 return runGlobal();
             }
         }
@@ -292,27 +243,22 @@ public class MagmaLib {
             if (isFolia() && entity != null) {
                 EntityScheduler scheduler = entity.getScheduler();
 
-                if (cancelIfUnloaded && !entity.isValid()) {
+                if (!unsafe && cancelIfUnloaded && !entity.isValid()) {
                     return new EmptyTask();
                 }
 
-                long delayTicks = delay / 50;
-                long periodTicks = period / 50;
+                long delayTicks = delay / 50L;
+                long periodTicks = period / 50L;
 
                 if (period > 0) {
-                    ScheduledTask task = scheduler.runAtFixedRate(plugin,
-                            t -> executeSafely(), null, delayTicks, periodTicks);
-                    return new FoliaTask(task);
+                    return new FoliaTask(scheduler.runAtFixedRate(plugin, t -> executeSafely(), null, delayTicks, periodTicks));
                 } else if (delay > 0) {
-                    ScheduledTask task = scheduler.runDelayed(plugin,
-                            t -> executeSafely(), null, delayTicks);
-                    return new FoliaTask(task);
+                    return new FoliaTask(scheduler.runDelayed(plugin, t -> executeSafely(), null, delayTicks));
                 } else {
                     scheduler.run(plugin, t -> executeSafely(), null);
                     return new EmptyTask();
                 }
             } else {
-                // En Paper o si entity es null, fallback a global
                 return runGlobal();
             }
         }
@@ -320,25 +266,21 @@ public class MagmaLib {
         private Task runGlobal() {
             if (isFolia()) {
                 GlobalRegionScheduler scheduler = Bukkit.getGlobalRegionScheduler();
-                long delayTicks = delay / 50;
-                long periodTicks = period / 50;
+                long delayTicks = delay / 50L;
+                long periodTicks = period / 50L;
 
                 if (period > 0) {
-                    ScheduledTask task = scheduler.runAtFixedRate(plugin,
-                            t -> executeSafely(), delayTicks, periodTicks);
-                    return new FoliaTask(task);
+                    return new FoliaTask(scheduler.runAtFixedRate(plugin, t -> executeSafely(), delayTicks, periodTicks));
                 } else if (delay > 0) {
-                    ScheduledTask task = scheduler.runDelayed(plugin,
-                            t -> executeSafely(), delayTicks);
-                    return new FoliaTask(task);
+                    return new FoliaTask(scheduler.runDelayed(plugin, t -> executeSafely(), delayTicks));
                 } else {
                     scheduler.run(plugin, t -> executeSafely());
                     return new EmptyTask();
                 }
             } else {
                 BukkitTask task;
-                long delayTicks = delay / 50;
-                long periodTicks = period / 50;
+                long delayTicks = delay / 50L;
+                long periodTicks = period / 50L;
 
                 if (period > 0) {
                     task = Bukkit.getScheduler().runTaskTimer(plugin, this::executeSafely, delayTicks, periodTicks);
@@ -382,25 +324,121 @@ public class MagmaLib {
         @Override public boolean isRunning() { return task != null && !task.isCancelled(); }
     }
 
-    // ==================== UTILIDADES ====================
+    // ==================== API DIRECTA (HOT PATH - MÁXIMO RENDIMIENTO) ====================
 
     /**
-     * Ejecuta en el próximo tick.
+     * ⚡ Ejecución inmediata en hilo global. SIN validaciones. MÁXIMA VELOCIDAD.
+     * <p>
+     * ⚠️ Uso exclusivo en rutas críticas donde garantizas parámetros válidos.
+     * No verifica nulls, chunks cargados, o estado de entidades.
+     *
+     * @param runnable Código a ejecutar
      */
+    public static void runDirect(Runnable runnable) {
+        if (isFoliaCache) {
+            Bukkit.getGlobalRegionScheduler().execute(plugin, runnable);
+        } else {
+            Bukkit.getScheduler().runTask(plugin, runnable);
+        }
+    }
+
+    /**
+     * ⚡ Ejecución en región de chunk. Omite checks de chunk/world.
+     * <p>
+     * ⚠️ Garantiza que location.getWorld() != null y el chunk está cargado.
+     *
+     * @param location Ubicación para routing en Folia
+     * @param runnable Código a ejecutar
+     */
+    public static void runDirectAt(Location location, Runnable runnable) {
+        if (isFoliaCache) {
+            Bukkit.getRegionScheduler().execute(plugin, location, runnable);
+        } else {
+            Bukkit.getScheduler().runTask(plugin, runnable);
+        }
+    }
+
+    /**
+     * ⚡ Ejecución en scheduler de entidad. Sin validación de isValid().
+     * <p>
+     * ⚠️ Garantiza que entity != null y entity.isValid() == true.
+     *
+     * @param entity Entidad para routing en Folia
+     * @param runnable Código a ejecutar
+     */
+    public static void runDirectWith(Entity entity, Runnable runnable) {
+        if (isFoliaCache && entity != null) {
+            entity.getScheduler().execute(plugin, runnable, null, 1L);
+        } else {
+            Bukkit.getScheduler().runTask(plugin, runnable);
+        }
+    }
+
+    /**
+     * ⚡ Tarea retrasada directa (en ticks). Sin conversión de TimeUnit.
+     * <p>
+     * ⚠️ Usa ticks directamente para evitar overhead de conversión.
+     *
+     * @param runnable Código a ejecutar
+     * @param delayTicks Retraso en ticks de Minecraft
+     */
+    public static void runDirectLater(Runnable runnable, long delayTicks) {
+        if (isFoliaCache) {
+            Bukkit.getGlobalRegionScheduler().runDelayed(plugin, t -> runnable.run(), delayTicks);
+        } else {
+            Bukkit.getScheduler().runTaskLater(plugin, runnable, delayTicks);
+        }
+    }
+
+    /**
+     * ⚡ Tarea periódica directa (en ticks). Sin builder ni allocations extra.
+     * <p>
+     * ⚠️ Ideal para bucles de tick, procesamiento masivo de bloques/entidades.
+     *
+     * @param runnable Código a ejecutar periódicamente
+     * @param periodTicks Intervalo entre ejecuciones en ticks
+     */
+    public static void runDirectTimer(Runnable runnable, long periodTicks) {
+        if (isFoliaCache) {
+            Bukkit.getGlobalRegionScheduler().runAtFixedRate(plugin, t -> runnable.run(), 1L, periodTicks);
+        } else {
+            Bukkit.getScheduler().runTaskTimer(plugin, runnable, 1L, periodTicks);
+        }
+    }
+
+    /**
+     * ⚡ Versión de alto rendimiento de runTimerUntil: sin AtomicReference.
+     * <p>
+     * ⚠️ La tarea debe cancelar manualmente o usar el Task devuelto.
+     *
+     * @param task Tarea a ejecutar
+     * @param periodTicks Intervalo en ticks
+     * @param stopCondition Condición para detener
+     * @return Task para cancelación manual
+     */
+    public static Task runTimerUntilFast(Runnable task, long periodTicks, BooleanSupplier stopCondition) {
+        Runnable wrapped = () -> {
+            if (stopCondition.getAsBoolean()) return;
+            task.run();
+        };
+
+        if (isFoliaCache) {
+            return new FoliaTask(Bukkit.getGlobalRegionScheduler().runAtFixedRate(plugin, t -> wrapped.run(), 1L, periodTicks));
+        } else {
+            return new PaperTask(Bukkit.getScheduler().runTaskTimer(plugin, wrapped, 1L, periodTicks));
+        }
+    }
+
+    // ==================== UTILIDADES ESTÁNDAR ====================
+
     public static void runNextTick(Runnable runnable) {
         task(runnable).afterTicks(1).run();
     }
 
-    /**
-     * Ejecuta con retraso especificado.
-     */
     public static void runLater(Runnable runnable, long delay, TimeUnit unit) {
         task(runnable).after(delay, unit).run();
     }
 
-    /**
-     * Ejecuta asíncronamente con CompletableFuture.
-     */
     public static CompletableFuture<Void> runAsync(Runnable runnable) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         task(() -> {
@@ -414,9 +452,6 @@ public class MagmaLib {
         return future;
     }
 
-    /**
-     * Ejecuta supplier asíncrono con retorno de valor.
-     */
     public static <T> CompletableFuture<T> callAsync(Supplier<T> supplier) {
         CompletableFuture<T> future = new CompletableFuture<>();
         task(() -> {
@@ -429,27 +464,18 @@ public class MagmaLib {
         return future;
     }
 
-    /**
-     * Ejecuta en el hilo principal (global en Folia).
-     */
     public static void runSync(Runnable runnable) {
-        if (isFolia()) {
+        if (isFoliaCache) {
             Bukkit.getGlobalRegionScheduler().execute(plugin, runnable);
         } else {
             Bukkit.getScheduler().runTask(plugin, runnable);
         }
     }
 
-    /**
-     * Ejecuta en el hilo principal con retraso en ticks.
-     */
     public static Task runSyncLater(Runnable runnable, long delayTicks) {
         return task(runnable).afterTicks(delayTicks).run();
     }
 
-    /**
-     * Ejecuta supplier en el hilo principal con retorno de valor.
-     */
     public static <T> CompletableFuture<T> callSync(Supplier<T> supplier) {
         CompletableFuture<T> future = new CompletableFuture<>();
         runSync(() -> {
@@ -462,9 +488,6 @@ public class MagmaLib {
         return future;
     }
 
-    /**
-     * Ejecuta acción para cada jugador en línea con manejo de errores.
-     */
     public static void forAllPlayers(Consumer<Player> action) {
         runSync(() -> {
             for (Player player : Bukkit.getOnlinePlayers()) {
@@ -479,9 +502,6 @@ public class MagmaLib {
         });
     }
 
-    /**
-     * Procesa todos los chunks cargados (operación pesada, ejecuta asíncrono).
-     */
     public static void forAllLoadedChunks(Consumer<Chunk> action) {
         task(() -> {
             for (World world : Bukkit.getWorlds()) {
@@ -500,9 +520,6 @@ public class MagmaLib {
         }).async().run();
     }
 
-    /**
-     * Ejecuta tarea solo si el chunk está cargado.
-     */
     public static void executeIfLoaded(Location location, Runnable task) {
         World world = location.getWorld();
         if (world != null && world.isChunkLoaded(location.getBlockX() >> 4, location.getBlockZ() >> 4)) {
@@ -510,14 +527,6 @@ public class MagmaLib {
         }
     }
 
-    /**
-     * Ejecuta tarea periódicamente hasta que se cumpla la condición de parada.
-     *
-     * @param task Tarea a ejecutar
-     * @param periodTicks Intervalo en ticks
-     * @param stopCondition Condición para detener
-     * @return Task para cancelación manual
-     */
     public static Task runTimerUntil(Runnable task, long periodTicks, BooleanSupplier stopCondition) {
         AtomicReference<Task> taskRef = new AtomicReference<>();
 
@@ -534,20 +543,11 @@ public class MagmaLib {
         return actualTask;
     }
 
-    /**
-     * Ejecuta tarea con reintentos usando scheduler (NO threads manuales).
-     *
-     * @param task Tarea a ejecutar
-     * @param maxAttempts Intentos máximos
-     * @param delayBetweenAttempts Retraso entre intentos
-     * @param unit Unidad temporal
-     */
     public static void runWithRetry(Runnable task, int maxAttempts, long delayBetweenAttempts, TimeUnit unit) {
         AtomicReference<Runnable> retryRef = new AtomicReference<>();
 
         Runnable attempt = new Runnable() {
             int attempts = 0;
-
             @Override
             public void run() {
                 try {
@@ -567,36 +567,24 @@ public class MagmaLib {
         attempt.run();
     }
 
-    /**
-     * @return RegionScheduler en Folia, o lanza excepción en Paper
-     */
     public static RegionScheduler getRegionScheduler() {
-        if (isFolia()) {
+        if (isFoliaCache) {
             return Bukkit.getRegionScheduler();
         }
         throw new UnsupportedOperationException("RegionScheduler is only available on Folia");
     }
 
-    /**
-     * @return EntityScheduler para la entidad en Folia, o lanza excepción en Paper
-     */
     public static EntityScheduler getEntityScheduler(Entity entity) {
-        if (isFolia() && entity != null) {
+        if (isFoliaCache && entity != null) {
             return entity.getScheduler();
         }
         throw new UnsupportedOperationException("EntityScheduler is only available on Folia");
     }
 
-    /**
-     * Convierte ticks a milisegundos.
-     */
     public static long ticksToMs(long ticks) {
         return ticks * 50L;
     }
 
-    /**
-     * Convierte milisegundos a ticks.
-     */
     public static long msToTicks(long ms) {
         return ms / 50L;
     }
