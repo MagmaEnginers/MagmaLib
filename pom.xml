@@ -6,7 +6,7 @@
 
     <groupId>io.github.piratemajo</groupId>
     <artifactId>magmalib</artifactId>
-    <version>1.2v</version>
+    <version>1.2.0</version>
     <packaging>jar</packaging>
 
     <name>MagmaLib</name>
