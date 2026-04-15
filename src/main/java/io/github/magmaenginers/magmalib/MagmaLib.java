@@ -1,4 +1,4 @@
-package io.github.piratemajo.magmalib;
+package io.github.magmaenginers.magmalib;
 
 import io.papermc.paper.threadedregions.scheduler.*;
 import org.bukkit.*;
