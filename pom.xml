@@ -75,10 +75,8 @@
             <url>https://repo.papermc.io/repository/maven-public/</url>
         </repository>
         <repository>
-            <!-- Canvas Adios Paper-->
-            <id>canvasmc-snapshots</id>
-            <name>CanvasMC</name>
-            <url>https://maven.canvasmc.io/snapshots</url>
+            <id>papermc</id>
+            <url>https://repo.papermc.io/repository/maven-public/</url>
         </repository>
         <repository>
             <id>sonatype</id>
@@ -88,9 +86,10 @@
 
     <dependencies>
         <dependency>
-            <groupId>io.canvasmc.canvas</groupId>
-            <artifactId>canvas-api</artifactId>
+            <groupId>dev.folia</groupId>
+            <artifactId>folia-api</artifactId>
             <version>1.21.11-R0.1-SNAPSHOT</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 </project>
