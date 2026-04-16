@@ -17,7 +17,6 @@
 - [🔧 API Task Builder](#-api-task-builder)
 - [⚡ API Directa (Alto Rendimiento)](#-api-directa-alto-rendimiento)
 - [🛡️ Seguridad vs Rendimiento](#️-seguridad-vs-rendimiento)
-- [📊 Benchmarks](#-benchmarks)
 - [🌐 Compatibilidad](#-compatibilidad)
 - [❓ FAQ](#-faq)
 - [🤝 Contribuir](#-contribuir)
