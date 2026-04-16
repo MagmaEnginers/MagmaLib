@@ -1,377 +1,630 @@
 <!DOCTYPE html>
-<html lang="es" data-theme="light">
+<html lang="es" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MagmaLib v1.2 - Documentación</title>
+    <meta name="description" content="API moderna de scheduling para plugins de Paper y Folia. Migración sin dolor, máximo rendimiento.">
+
+    <!-- Open Graph / SEO -->
+    <meta property="og:title" content="MagmaLib - Documentación">
+    <meta property="og:description" content="API profesional para scheduling en Paper/Folia">
+    <meta property="og:type" content="website">
+
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/run_prettify.js"></script>
+
     <style>
+        /* ===== CSS VARIABLES ===== */
         :root {
-            --primary: #3a86ff;
-            --primary-light: #e6f0ff;
-            --secondary: #ff006e;
-            --accent: #8338ec;
-            --light: #ffffff;
-            --dark: #2d3748;
-            --gray: #718096;
-            --border: #e2e8f0;
-            --success: #38b000;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --bg: #f8fafc;
+            --color-bg: #ffffff;
+            --color-bg-secondary: #f6f8fa;
+            --color-bg-tertiary: #eaeef2;
+            --color-text: #1f2937;
+            --color-text-secondary: #6b7280;
+            --color-text-muted: #9ca3af;
+            --color-border: #e5e7eb;
+            --color-primary: #3b82f6;
+            --color-primary-hover: #2563eb;
+            --color-accent: #8b5cf6;
+            --color-success: #22c55e;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+
+            --sidebar-width: 280px;
+            --sidebar-bg: var(--color-bg-secondary);
+            --sidebar-hover: #e2e8f0;
+            --sidebar-active: var(--color-primary);
+            --sidebar-active-bg: #dbeafe;
+
+            --header-height: 56px;
+            --header-bg: var(--color-bg);
+            --header-border: var(--color-border);
+
+            --code-bg: #0f172a;
+            --code-text: #e2e8f0;
+            --code-border: #334155;
+            --code-font: 'JetBrains Mono', monospace;
+
+            --content-max-width: 900px;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            --spacing-2xl: 3rem;
+
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --transition: all 0.2s ease;
         }
 
         [data-theme="dark"] {
-            --primary: #5a9bff;
-            --primary-light: #1a2a4a;
-            --light: #1a202c;
-            --dark: #f7fafc;
-            --gray: #a0aec0;
-            --border: #2d3748;
-            --bg: #1a202c;
-            --warning: #fbbf24;
-            --danger: #f87171;
+            --color-bg: #0d1117;
+            --color-bg-secondary: #161b22;
+            --color-bg-tertiary: #21262d;
+            --color-text: #e6edf3;
+            --color-text-secondary: #8b949e;
+            --color-text-muted: #6e7681;
+            --color-border: #30363d;
+            --color-primary: #58a6ff;
+            --color-primary-hover: #79c0ff;
+            --color-accent: #a78bfa;
+            --color-success: #3fb950;
+            --color-warning: #d29922;
+            --color-danger: #f85149;
+
+            --sidebar-bg: var(--color-bg-secondary);
+            --sidebar-hover: #21262d;
+            --sidebar-active-bg: #1f3a5a;
+
+            --header-bg: var(--color-bg-secondary);
+            --header-border: var(--color-border);
+
+            --code-bg: #161b22;
+            --code-text: #c9d1d9;
+            --code-border: #30363d;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        /* ===== RESET & BASE ===== */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: var(--bg);
-            color: var(--dark);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--color-bg);
+            color: var(--color-text);
             line-height: 1.6;
-            transition: background 0.3s, color 0.3s;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
         }
 
-        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        /* ===== LAYOUT ===== */
+        .app { display: flex; min-height: 100vh; }
 
-        header {
-            background: var(--light);
-            padding: 1rem 0;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            position: sticky;
-            top: 0;
-            z-index: 100;
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--color-border);
+            position: fixed;
+            top: 0; left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 40;
+            transition: transform 0.3s ease;
         }
 
-        nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
+        .sidebar-header {
+            padding: var(--spacing-lg);
+            border-bottom: 1px solid var(--color-border);
+            position: sticky; top: 0;
+            background: var(--sidebar-bg);
+            z-index: 10;
         }
 
         .logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--primary);
+            display: flex; align-items: center; gap: 0.75rem;
+            font-weight: 700; font-size: 1.25rem;
+            color: var(--color-text); text-decoration: none;
+        }
+        .logo i { color: var(--color-primary); font-size: 1.4rem; }
+        .logo .version {
+            background: var(--color-primary); color: white;
+            padding: 0.15rem 0.5rem; border-radius: 4px;
+            font-size: 0.75rem; font-weight: 500;
         }
 
-        .theme-toggle {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 5px;
+        .nav { padding: var(--spacing-md) 0; }
+        .nav-section { margin-bottom: var(--spacing-lg); }
+        .nav-title {
+            padding: 0 var(--spacing-lg);
+            font-size: 0.75rem; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.05em;
+            color: var(--color-text-muted); margin-bottom: var(--spacing-sm);
+        }
+
+        .nav-item {
+            display: flex; align-items: center; gap: 0.5rem;
+            padding: 0.5rem var(--spacing-lg);
+            color: var(--color-text-secondary);
+            text-decoration: none; font-size: 0.9rem;
+            border-left: 2px solid transparent;
+            transition: var(--transition);
+        }
+        .nav-item:hover { background: var(--sidebar-hover); color: var(--color-text); }
+        .nav-item.active {
+            background: var(--sidebar-active-bg);
+            color: var(--sidebar-active);
+            border-left-color: var(--sidebar-active);
+            font-weight: 500;
+        }
+        .nav-item i { width: 1rem; text-align: center; font-size: 0.85rem; }
+
+        .main { flex: 1; margin-left: var(--sidebar-width); min-width: 0; }
+
+        /* ===== HEADER ===== */
+        .header {
+            position: sticky; top: 0; height: var(--header-height);
+            background: var(--header-bg); border-bottom: 1px solid var(--header-border);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 var(--spacing-lg); z-index: 30; transition: var(--transition);
+        }
+
+        .header-left { display: flex; align-items: center; gap: var(--spacing-md); }
+
+        .menu-toggle {
+            display: none; background: none; border: none;
+            color: var(--color-text); font-size: 1.25rem;
+            cursor: pointer; padding: 0.5rem; border-radius: 6px;
+        }
+        .menu-toggle:hover { background: var(--color-bg-tertiary); }
+
+        .search-box {
+            position: relative; width: 100%; max-width: 400px;
+        }
+        .search-box input {
+            width: 100%; padding: 0.5rem 1rem 0.5rem 2.5rem;
+            background: var(--color-bg-tertiary); border: 1px solid var(--color-border);
+            border-radius: 6px; color: var(--color-text); font-size: 0.9rem;
+            transition: var(--transition);
+        }
+        .search-box input:focus {
+            outline: none; border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .search-box i {
+            position: absolute; left: 0.75rem; top: 50%;
+            transform: translateY(-50%); color: var(--color-text-muted);
+        }
+
+        .header-right { display: flex; align-items: center; gap: 0.5rem; }
+        .header-btn {
+            display: flex; align-items: center; gap: 0.35rem;
+            padding: 0.5rem 0.75rem; background: var(--color-bg-tertiary);
+            border: 1px solid var(--color-border); border-radius: 6px;
+            color: var(--color-text); font-size: 0.85rem;
+            text-decoration: none; transition: var(--transition); cursor: pointer;
+        }
+        .header-btn:hover { background: var(--sidebar-hover); border-color: var(--color-primary); }
+
+        /* ===== CONTENT ===== */
+        .content {
+            padding: var(--spacing-2xl) var(--spacing-lg);
+            max-width: var(--content-max-width); margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem; font-weight: 700;
+            margin-bottom: var(--spacing-lg); color: var(--color-text);
+            line-height: 1.3;
+        }
+        h2 {
+            font-size: 1.5rem; font-weight: 600;
+            margin: var(--spacing-2xl) 0 var(--spacing-lg);
+            padding-bottom: var(--spacing-sm);
+            border-bottom: 1px solid var(--color-border);
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        h3 {
+            font-size: 1.25rem; font-weight: 600;
+            margin: var(--spacing-xl) 0 var(--spacing-md); color: var(--color-text);
+        }
+        h4 {
+            font-size: 1.1rem; font-weight: 600;
+            margin: 0 0 var(--spacing-sm); color: var(--color-text);
+        }
+
+        p { margin-bottom: var(--spacing-md); color: var(--color-text-secondary); }
+        a { color: var(--color-primary); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        ul, ol { margin: var(--spacing-md) 0; padding-left: var(--spacing-lg); color: var(--color-text-secondary); }
+        li { margin-bottom: var(--spacing-sm); }
+
+        /* ===== CODE BLOCKS - PERFECT STYLING ===== */
+        pre {
+            font-family: var(--code-font);
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 1.25rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            font-size: 0.875rem;
+            line-height: 1.6;
+            position: relative;
+            border: 1px solid var(--code-border);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        code {
+            font-family: var(--code-font);
+            font-size: 0.9em;
+        }
+
+        /* Inline code */
+        p code, li code, td code {
+            background: rgba(148, 163, 184, 0.15);
+            color: #ef4444;
+            padding: 0.2em 0.4em;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 0.9em;
+        }
+        [data-theme="light"] p code,
+        [data-theme="light"] li code,
+        [data-theme="light"] td code {
+            background: rgba(0, 0, 0, 0.06);
+            color: #dc2626;
+        }
+
+        /* Syntax Highlighting */
+        .token.comment, .token.prolog, .token.doctype, .token.cdata { color: #64748b; font-style: italic; }
+        .token.punctuation, .token.operator { color: #94a3b8; }
+        .token.namespace { opacity: 0.7; }
+        .token.property, .token.keyword, .token.tag { color: #f472b6; font-weight: 600; }
+        .token.class-name { color: #fbbf24; font-weight: 600; }
+        .token.boolean, .token.constant, .token.number { color: #2dd4bf; font-weight: 600; }
+        .token.symbol, .token.deleted { color: #f472b6; }
+        .token.selector, .token.attr-name, .token.string, .token.char, .token.builtin, .token.inserted { color: #86efac; }
+        .token.variable { color: #c084fc; }
+        .token.function { color: #60a5fa; font-weight: 600; }
+        .token.regex { color: #fbbf24; }
+        .token.important { color: #ef4444; font-weight: 700; }
+        .token.entity { color: #fbbf24; cursor: help; }
+        .token.url { color: #60a5fa; text-decoration: underline; }
+
+        /* Code Block Container */
+        .code-block {
+            position: relative;
+            margin: 1.5rem 0;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 0.75rem; right: 0.75rem;
+            padding: 0.4rem 0.75rem;
+            background: rgba(148, 163, 184, 0.1);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 6px;
+            color: #94a3b8;
+            font-size: 0.75rem;
+            font-weight: 500;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            transition: background 0.2s;
+            display: flex; align-items: center; gap: 0.4rem;
+            transition: all 0.2s ease;
+            opacity: 0;
+            z-index: 5;
         }
-        .theme-toggle:hover { background: var(--accent); }
+        .code-block:hover .copy-btn { opacity: 1; }
+        .copy-btn:hover {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: rgba(59, 130, 246, 0.4);
+            color: #60a5fa;
+        }
+        .copy-btn.copied {
+            background: rgba(34, 197, 94, 0.2);
+            border-color: rgba(34, 197, 94, 0.4);
+            color: #4ade80;
+        }
+        .copy-btn i { font-size: 0.8rem; }
 
-        .hero {
-            text-align: center;
-            padding: 4rem 0;
-            background: linear-gradient(135deg, var(--primary-light), var(--light));
-        }
+        /* Scrollbar */
+        pre::-webkit-scrollbar { width: 8px; height: 8px; }
+        pre::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.3); border-radius: 4px; }
+        pre::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 4px; }
+        pre::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.5); }
 
-        .hero h1 { font-size: 2.5rem; margin-bottom: 1rem; color: var(--dark); }
-        .hero p { font-size: 1.2rem; color: var(--gray); max-width: 700px; margin: 0 auto; }
-        .hero .version-badge {
-            display: inline-block;
-            background: var(--accent);
-            color: white;
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            margin-bottom: 1rem;
+        /* ===== CALLOUTS / NOTES ===== */
+        .callout {
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-radius: 8px;
+            margin: var(--spacing-lg) 0;
+            border-left: 4px solid var(--color-primary);
+            background: var(--color-bg-tertiary);
         }
+        .callout.warning { border-left-color: var(--color-warning); background: rgba(245, 158, 11, 0.1); }
+        .callout.danger { border-left-color: var(--color-danger); background: rgba(239, 68, 68, 0.1); }
+        .callout.success { border-left-color: var(--color-success); background: rgba(34, 197, 94, 0.1); }
 
-        .section { padding: 3rem 0; border-bottom: 1px solid var(--border); }
-        .section-title {
-            margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid var(--primary);
+        .callout-title {
+            font-weight: 600; display: flex; align-items: center; gap: 0.5rem;
+            margin-bottom: var(--spacing-sm); color: var(--color-text);
         }
-        .section-title h2 {
-            font-size: 1.8rem;
-            color: var(--dark);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+        .callout p { margin: 0; }
+        .callout ul { margin: var(--spacing-sm) 0 0 var(--spacing-lg); }
 
+        /* ===== METHOD CARDS ===== */
         .method-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 1.5rem;
-            margin-top: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: var(--spacing-lg);
+            margin: var(--spacing-lg) 0;
         }
 
         .method-card {
-            background: var(--light);
-            border-radius: 10px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            border: 1px solid var(--border);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .method-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-        }
-
-        .method-card h3 {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 1rem;
-            color: var(--primary);
-        }
-
-        .signature {
-            background: var(--primary-light);
-            padding: 0.5rem;
-            border-radius: 5px;
-            font-family: monospace;
-            margin-bottom: 1rem;
-            font-size: 0.95rem;
-            overflow-x: auto;
-        }
-
-        .code-block {
-            background: var(--bg);
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
             border-radius: 8px;
-            padding: 1.2rem;
-            margin: 1rem 0;
+            padding: var(--spacing-lg);
+            transition: var(--transition);
+        }
+        .method-card:hover { border-color: var(--color-primary); box-shadow: var(--shadow-md); }
+
+        .method-card h4 {
+            display: flex; align-items: center; gap: 0.5rem;
+            margin-bottom: var(--spacing-sm); color: var(--color-text);
+        }
+
+        .method-signature {
+            font-family: var(--code-font);
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 0.5rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            margin: var(--spacing-sm) 0;
             overflow-x: auto;
-            border-left: 3px solid var(--primary);
+            border: 1px solid var(--code-border);
+        }
+
+        .badge {
+            display: inline-flex; align-items: center;
+            padding: 0.15rem 0.5rem; border-radius: 4px;
+            font-size: 0.7rem; font-weight: 500; margin-left: 0.5rem;
+        }
+        .badge.standard { background: var(--color-primary); color: white; }
+        .badge.direct { background: var(--color-warning); color: #1f2937; }
+        .badge.new { background: var(--color-success); color: white; }
+
+        /* ===== TABLES ===== */
+        .table-wrapper {
+            overflow-x: auto; margin: var(--spacing-lg) 0;
+            border: 1px solid var(--color-border); border-radius: 8px;
+        }
+        table {
+            width: 100%; border-collapse: collapse; font-size: 0.9rem;
+        }
+        th, td {
+            padding: var(--spacing-md); text-align: left;
+            border-bottom: 1px solid var(--color-border);
+        }
+        th { background: var(--color-bg-tertiary); font-weight: 600; color: var(--color-text); }
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background: var(--color-bg-secondary); }
+
+        .status-yes { color: var(--color-success); font-weight: 500; }
+        .status-no { color: var(--color-danger); font-weight: 500; }
+
+        /* ===== HERO ===== */
+        .hero {
+            padding: var(--spacing-2xl) 0;
+            border-bottom: 1px solid var(--color-border);
+            margin-bottom: var(--spacing-2xl);
+        }
+        .hero h1 { margin-bottom: var(--spacing-md); }
+        .hero p { font-size: 1.1rem; max-width: 650px; }
+
+        .hero-actions {
+            display: flex; gap: var(--spacing-md);
+            margin-top: var(--spacing-lg); flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            padding: 0.6rem 1.2rem; background: var(--color-primary);
+            color: white; border: none; border-radius: 6px;
+            font-weight: 500; font-size: 0.95rem;
+            text-decoration: none; cursor: pointer; transition: var(--transition);
+        }
+        .btn:hover { background: var(--color-primary-hover); }
+        .btn.secondary {
+            background: var(--color-bg-tertiary); color: var(--color-text);
+            border: 1px solid var(--color-border);
+        }
+        .btn.secondary:hover { background: var(--sidebar-hover); }
+
+        /* ===== FOOTER ===== */
+        .footer {
+            padding: var(--spacing-2xl) var(--spacing-lg);
+            border-top: 1px solid var(--color-border);
+            margin-top: var(--spacing-2xl);
+            text-align: center; color: var(--color-text-muted);
             font-size: 0.9rem;
         }
-
-        .note {
-            background: var(--primary-light);
-            border-left: 4px solid var(--primary);
-            padding: 1rem;
-            margin: 1.5rem 0;
-            border-radius: 0 5px 5px 0;
-        }
-
-        .note.warning {
-            background: #fef3c7;
-            border-left-color: var(--warning);
-        }
-        [data-theme="dark"] .note.warning {
-            background: #453318;
-        }
-
-        .note.danger {
-            background: #fee2e2;
-            border-left-color: var(--danger);
-        }
-        [data-theme="dark"] .note.danger {
-            background: #451a1a;
-        }
-
-        .entity-section {
-            background: var(--primary-light);
-            border-radius: 10px;
-            padding: 1.5rem;
-            margin: 2rem 0;
-        }
-
-        .compatibility-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 1rem 0;
-            overflow-x: auto;
-            display: block;
-        }
-        .compatibility-table th, .compatibility-table td {
-            padding: 0.75rem;
-            border: 1px solid var(--border);
-            text-align: left;
-        }
-        .compatibility-table th { background: var(--primary-light); }
-
-        .performance-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 1rem 0;
-        }
-        .performance-table th, .performance-table td {
-            padding: 0.75rem;
-            border: 1px solid var(--border);
-            text-align: left;
-        }
-        .performance-table th { background: var(--accent); color: white; }
-        .performance-table .best { background: #dcfce7; font-weight: bold; }
-        [data-theme="dark"] .performance-table .best { background: #14532d; }
-
-        footer {
-            background: var(--dark);
-            color: var(--light);
-            padding: 2rem 0;
-            text-align: center;
-            margin-top: 3rem;
-        }
-
         .footer-links {
-            display: flex;
-            gap: 20px;
-            justify-content: center;
-            margin-top: 1rem;
-            flex-wrap: wrap;
+            display: flex; justify-content: center; gap: var(--spacing-lg);
+            margin-top: var(--spacing-md); flex-wrap: wrap;
         }
-
         .footer-links a {
-            color: var(--light);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            transition: opacity 0.2s;
+            color: var(--color-text-secondary); text-decoration: none;
+            display: flex; align-items: center; gap: 0.35rem;
+            transition: var(--transition);
         }
-        .footer-links a:hover { opacity: 0.8; text-decoration: underline; }
+        .footer-links a:hover { color: var(--color-primary); }
 
-        .new-feature {
-            position: relative;
-            border-left: 4px solid var(--accent);
-        }
-        .new-feature::before {
-            content: "NUEVO";
-            position: absolute;
-            top: -10px;
-            right: -10px;
-            background: var(--accent);
-            color: white;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            font-weight: bold;
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1024px) {
+            .sidebar { transform: translateX(-100%); box-shadow: var(--shadow-md); }
+            .sidebar.open { transform: translateX(0); }
+            .menu-toggle { display: flex; }
+            .main { margin-left: 0; }
+            .search-box { display: none; }
         }
 
-        .high-perf {
-            position: relative;
-            border-left: 4px solid var(--secondary);
-        }
-        .high-perf::before {
-            content: "⚡ RÁPIDO";
-            position: absolute;
-            top: -10px;
-            right: -10px;
-            background: var(--secondary);
-            color: white;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            font-weight: bold;
-        }
-
-        .search-container {
-            margin: 1rem 0;
-            position: relative;
-        }
-        .search-container input {
-            width: 100%;
-            padding: 0.75rem 1rem 0.75rem 2.5rem;
-            border: 1px solid var(--border);
-            border-radius: 5px;
-            background: var(--light);
-            color: var(--dark);
-        }
-        .search-container i {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--gray);
-        }
-
-        .api-level-badge {
-            display: inline-block;
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: bold;
-            margin-left: 0.5rem;
-        }
-        .api-level-standard { background: var(--primary-light); color: var(--primary); }
-        .api-level-direct { background: #fef3c7; color: #92400e; }
-        [data-theme="dark"] .api-level-direct { background: #453318; color: #fbbf24; }
-
-        @media (max-width: 768px) {
-            .hero { padding: 2rem 0; }
-            .hero h1 { font-size: 2rem; }
+        @media (max-width: 640px) {
+            .content { padding: var(--spacing-xl) var(--spacing-md); }
+            h1 { font-size: 1.75rem; }
+            h2 { font-size: 1.35rem; }
             .method-grid { grid-template-columns: 1fr; }
-            nav { flex-direction: column; align-items: flex-start; }
-            .compatibility-table { font-size: 0.9rem; }
+            .hero-actions { flex-direction: column; }
+            .btn { width: 100%; justify-content: center; }
+            pre { padding: 1rem; font-size: 0.8rem; border-radius: 6px; }
+            .copy-btn { top: 0.5rem; right: 0.5rem; padding: 0.3rem 0.6rem; font-size: 0.7rem; }
+        }
+
+        /* ===== UTILITIES ===== */
+        .hidden { display: none !important; }
+        .sr-only {
+            position: absolute; width: 1px; height: 1px;
+            padding: 0; margin: -1px; overflow: hidden;
+            clip: rect(0,0,0,0); white-space: nowrap; border: 0;
         }
     </style>
 </head>
 <body>
-<header>
-    <div class="container">
-        <nav>
-            <div class="logo">
+<div class="app">
+
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="#" class="logo">
                 <i class="fas fa-bolt"></i>
-                <span>MagmaLib <span class="version-badge">v1.2</span></span>
+                <span>MagmaLib</span>
+                <span class="version">v1.2</span>
+            </a>
+        </div>
+
+        <nav class="nav">
+            <div class="nav-section">
+                <div class="nav-title">Empezando</div>
+                <a href="#introduccion" class="nav-item active" data-section="introduccion"><i class="fas fa-home"></i> Introducción</a>
+                <a href="#instalacion" class="nav-item" data-section="instalacion"><i class="fas fa-download"></i> Instalación</a>
+                <a href="#quickstart" class="nav-item" data-section="quickstart"><i class="fas fa-rocket"></i> Inicio Rápido</a>
             </div>
-            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                <button class="theme-toggle" onclick="toggleTheme()">
-                    <i class="fas fa-moon"></i> Tema
-                </button>
+            <div class="nav-section">
+                <div class="nav-title">API Principal</div>
+                <a href="#inicializacion" class="nav-item" data-section="inicializacion"><i class="fas fa-cog"></i> Inicialización</a>
+                <a href="#taskbuilder" class="nav-item" data-section="taskbuilder"><i class="fas fa-tasks"></i> Task Builder</a>
+                <a href="#direct-api" class="nav-item" data-section="direct-api"><i class="fas fa-bolt"></i> API Directa ⚡</a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-title">Utilidades</div>
+                <a href="#async" class="nav-item" data-section="async"><i class="fas fa-sync-alt"></i> Async & Futures</a>
+                <a href="#helpers" class="nav-item" data-section="helpers"><i class="fas fa-wrench"></i> Helpers</a>
+                <a href="#entidades" class="nav-item" data-section="entidades"><i class="fas fa-users"></i> Entidades</a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-title">Referencia</div>
+                <a href="#compatibilidad" class="nav-item" data-section="compatibilidad"><i class="fas fa-table"></i> Compatibilidad</a>
+                <a href="#rendimiento" class="nav-item" data-section="rendimiento"><i class="fas fa-chart-line"></i> Rendimiento</a>
+                <a href="#faq" class="nav-item" data-section="faq"><i class="fas fa-question-circle"></i> FAQ</a>
             </div>
         </nav>
-    </div>
-</header>
+    </aside>
 
-<section class="hero">
-    <div class="container">
-        <h1>Documentación de MagmaLib</h1>
-        <p>La solución profesional para migrar plugins de Paper a Folia con una API moderna, type-safe y de alto rendimiento</p>
-    </div>
-</section>
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main">
 
-<section class="section">
-    <div class="container">
-        <div class="section-title">
-            <h2><i class="fas fa-rocket"></i> Inicio Rápido</h2>
-        </div>
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu"><i class="fas fa-bars"></i></button>
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Buscar en la documentación...">
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="header-btn" id="themeToggle" title="Cambiar tema">
+                    <i class="fas fa-moon"></i><span class="hidden-sm">Tema</span>
+                </button>
+                <a href="https://github.com/MagmaEnginers/MagmaLib" target="_blank" class="header-btn">
+                    <i class="fab fa-github"></i><span class="hidden-sm">GitHub</span>
+                </a>
+            </div>
+        </header>
 
-        <div class="note">
-            <strong>3 pasos para integrar MagmaLib:</strong>
-            <ol style="margin-left: 1.5rem; margin-top: 0.5rem;">
-                <li>Añadir como dependencia en tu <code>pom.xml</code> o <code>build.gradle</code></li>
-                <li>Llamar <code>MagmaLib.init(this)</code> en <code>onEnable()</code></li>
-                <li>Reemplazar <code>Bukkit.getScheduler()</code> por <code>MagmaLib.task()</code></li>
-            </ol>
-        </div>
+        <!-- Content -->
+        <div class="content">
 
-        <div class="code-block">
-            <pre class="prettyprint">// 1. En tu plugin principal
+            <!-- Hero -->
+            <section class="hero" id="introduccion">
+                <h1>Documentación de MagmaLib</h1>
+                <p>La solución profesional para migrar plugins de Paper a Folia con una API moderna, type-safe y de alto rendimiento.</p>
+                <div class="hero-actions">
+                    <a href="#quickstart" class="btn"><i class="fas fa-rocket"></i> Comenzar</a>
+                    <a href="https://github.com/MagmaEnginers/MagmaLib/releases" target="_blank" class="btn secondary"><i class="fas fa-download"></i> Descargar v1.2</a>
+                </div>
+            </section>
+
+            <!-- Instalación -->
+            <section id="instalacion">
+                <h2><i class="fas fa-download"></i> Instalación</h2>
+                <div class="callout">
+                    <div class="callout-title"><i class="fas fa-info-circle"></i> Requisitos</div>
+                    <p>Paper 1.18+ o Folia (recomendado 1.20+). Java 17 o superior.</p>
+                </div>
+
+                <h3>Maven</h3>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy"></i> Copiar</button>
+                    <pre><code class="language-xml">&lt;repository&gt;
+    &lt;id&gt;github&lt;/id&gt;
+    &lt;url&gt;https://github.com/MagmaEnginers/MagmaLib&lt;/url&gt;
+&lt;/repository&gt;
+
+&lt;dependency&gt;
+    &lt;groupId&gt;io.github.magmaenginers&lt;/groupId&gt;
+    &lt;artifactId&gt;MagmaLib&lt;/artifactId&gt;
+    &lt;version&gt;1.2.4&lt;/version&gt;
+    &lt;scope&gt;provided&lt;/scope&gt;
+&lt;/dependency&gt;</code></pre>
+                </div>
+
+                <h3>Gradle</h3>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy"></i> Copiar</button>
+                    <pre><code class="language-groovy">repositories {
+    maven { url 'https://github.com/MagmaEnginers/MagmaLib' }
+}
+
+dependencies {
+    compileOnly 'io.github.magmaenginers:MagmaLib:1.2.4'
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- Inicio Rápido -->
+            <section id="quickstart">
+                <h2><i class="fas fa-rocket"></i> Inicio Rápido</h2>
+                <p>Integra MagmaLib en 3 pasos simples:</p>
+                <ol>
+                    <li>Añade la dependencia a tu proyecto</li>
+                    <li>Inicializa en <code>onEnable()</code></li>
+                    <li>Reemplaza <code>Bukkit.getScheduler()</code> por <code>MagmaLib.task()</code></li>
+                </ol>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy"></i> Copiar</button>
+                    <pre><code class="language-java">// En tu JavaPlugin principal
 @Override
 public void onEnable() {
+    // 1. Inicializar MagmaLib
     MagmaLib.init(this);
 
-    // 2. Usar Task Builder (API estándar - segura y legible)
+    // 2. Usar Task Builder (API estándar - segura)
     MagmaLib.task(() -> {
         player.sendMessage("¡Hola desde MagmaLib!");
     })
@@ -380,588 +633,374 @@ public void onEnable() {
     .handleException(e -> getLogger().warning("Error: " + e.getMessage()))
     .run();
 
-    // 3. O usar API directa para hot paths (máximo rendimiento)
+    // 3. O API directa para hot paths (máximo rendimiento)
     // MagmaLib.runDirectAt(player.getLocation(), () -> {
     //     player.sendMessage("¡Hola rápido!");
     // });
-}</pre>
-        </div>
-    </div>
-</section>
+}</code></pre>
+                </div>
+            </section>
 
-<section class="section">
-    <div class="container">
-        <div class="section-title">
-            <h2><i class="fas fa-plug"></i> Inicialización</h2>
-        </div>
-
-        <div class="method-grid">
-            <div class="method-card">
-                <h3><i class="fas fa-cog"></i> init()</h3>
-                <div class="signature">void init(Plugin plugin)</div>
-                <p>Inicializa la librería. Llamar en <code>onEnable()</code>.</p>
-                <div class="code-block">
-                    <pre class="prettyprint">@Override
+            <!-- Inicialización -->
+            <section id="inicializacion">
+                <h2><i class="fas fa-cog"></i> Inicialización</h2>
+                <div class="method-grid">
+                    <div class="method-card">
+                        <h4><i class="fas fa-cog"></i> init() <span class="badge standard">Estándar</span></h4>
+                        <div class="method-signature">void init(Plugin plugin)</div>
+                        <p style="font-size: 0.9rem; color: var(--color-text-secondary);">Inicializa la librería. Llamar en <code>onEnable()</code>.</p>
+                        <div class="code-block">
+                            <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy"></i></button>
+                            <pre><code class="language-java">@Override
 public void onEnable() {
     MagmaLib.init(this);
-}</pre>
-                </div>
-            </div>
-
-            <div class="method-card">
-                <h3><i class="fas fa-check-circle"></i> isFolia()</h3>
-                <div class="signature">boolean isFolia()</div>
-                <p>Detecta automáticamente si el servidor es Folia usando reflexión robusta.</p>
-                <div class="code-block">
-                    <pre class="prettyprint">if (MagmaLib.isFolia()) {
+}</code></pre>
+                        </div>
+                    </div>
+                    <div class="method-card">
+                        <h4><i class="fas fa-check-circle"></i> isFolia()</h4>
+                        <div class="method-signature">boolean isFolia()</div>
+                        <p style="font-size: 0.9rem; color: var(--color-text-secondary);">Detecta automáticamente si el servidor es Folia usando reflexión.</p>
+                        <div class="code-block">
+                            <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy"></i></button>
+                            <pre><code class="language-java">if (MagmaLib.isFolia()) {
     // Código optimizado para Folia
 } else {
     // Fallback para Paper/Spigot
-}</pre>
+}</code></pre>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-    </div>
-</section>
+            </section>
 
-<section class="section">
-    <div class="container">
-        <div class="section-title">
-            <h2><i class="fas fa-tasks"></i> Task Builder (API Estándar)</h2>
-            <p style="color: var(--gray); margin-top: 0.5rem;">API segura y legible para la mayoría de casos de uso. Incluye validaciones y manejo de errores.</p>
-        </div>
+            <!-- Task Builder -->
+            <section id="taskbuilder">
+                <h2><i class="fas fa-tasks"></i> Task Builder (API Estándar)</h2>
+                <p style="color: var(--color-text-secondary);">API segura y legible para la mayoría de casos de uso. Incluye validaciones automáticas y manejo de errores.</p>
 
-        <div class="method-grid">
-            <div class="method-card">
-                <h3><i class="fas fa-play"></i> task() <span class="api-level-badge api-level-standard">Estándar</span></h3>
-                <div class="signature">TaskBuilder task(Runnable runnable)</div>
-                <p>Punto de entrada para configurar tareas con validaciones automáticas.</p>
-                <div class="code-block">
-                    <pre class="prettyprint">MagmaLib.task(() -> {
-    player.sendMessage("¡Hola!");
-});</pre>
+                <div class="method-grid">
+                    <div class="method-card"><h4><i class="fas fa-play"></i> task() <span class="badge standard">Entry</span></h4><div class="method-signature">TaskBuilder task(Runnable runnable)</div><p style="font-size: 0.9rem;">Punto de entrada para configurar tareas con validaciones automáticas.</p></div>
+                    <div class="method-card"><h4><i class="fas fa-map-marker-alt"></i> at()</h4><div class="method-signature">TaskBuilder at(Location location)</div><p style="font-size: 0.9rem;">Ejecuta en la región del chunk (Folia) o hilo principal (Paper).</p></div>
+                    <div class="method-card"><h4><i class="fas fa-user"></i> with()</h4><div class="method-signature">TaskBuilder with(Entity entity)</div><p style="font-size: 0.9rem;">Vincula la tarea al scheduler de la entidad en Folia.</p></div>
+                    <div class="method-card"><h4><i class="fas fa-clock"></i> afterTicks()</h4><div class="method-signature">TaskBuilder afterTicks(long ticks)</div><p style="font-size: 0.9rem;">Retraso directo en ticks de Minecraft (1 tick = 50ms).</p></div>
+                    <div class="method-card"><h4><i class="fas fa-sync"></i> everyTicks()</h4><div class="method-signature">TaskBuilder everyTicks(long ticks)</div><p style="font-size: 0.9rem;">Intervalo repetitivo en ticks para tareas periódicas.</p></div>
+                    <div class="method-card"><h4><i class="fas fa-bug"></i> handleException()</h4><div class="method-signature">TaskBuilder handleException(Consumer&lt;Exception&gt;)</div><p style="font-size: 0.9rem;">Manejador personalizado de errores para la tarea.</p></div>
+                    <div class="method-card"><h4><i class="fas fa-bolt"></i> unsafe() <span class="badge direct">Directo</span></h4><div class="method-signature">TaskBuilder unsafe()</div><p style="font-size: 0.9rem;">⚠️ Desactiva validaciones. Solo en hot paths con parámetros garantizados.</p></div>
+                    <div class="method-card"><h4><i class="fas fa-check"></i> run()</h4><div class="method-signature">Task run()</div><p style="font-size: 0.9rem;">Ejecuta la tarea y devuelve objeto Task para cancelación manual.</p></div>
                 </div>
-            </div>
 
-            <div class="method-card">
-                <h3><i class="fas fa-map-marker-alt"></i> at()</h3>
-                <div class="signature">TaskBuilder at(Location location)</div>
-                <p>Ejecuta en la región del chunk (Folia) o hilo principal (Paper). Valida world != null y chunk cargado por defecto.</p>
-                <div class="code-block">
-                    <pre class="prettyprint">.at(player.getLocation())</pre>
+                <div class="callout warning">
+                    <div class="callout-title"><i class="fas fa-triangle-exclamation"></i> Importante</div>
+                    <p>Por defecto, <code>.at()</code> y <code>.with()</code> validan que el chunk esté cargado y la entidad sea válida. Usa <code>.cancelIfUnloaded(false)</code> para desactivar.</p>
                 </div>
-            </div>
+            </section>
 
-            <div class="method-card">
-                <h3><i class="fas fa-user"></i> with()</h3>
-                <div class="signature">TaskBuilder with(Entity entity)</div>
-                <p>Vincula la tarea al scheduler de la entidad (Folia). Valida entity.isValid() por defecto.</p>
-                <div class="code-block">
-                    <pre class="prettyprint">.with(villager)</pre>
+            <!-- API Directa -->
+            <section id="direct-api">
+                <h2><i class="fas fa-bolt"></i> API Directa (Alto Rendimiento)</h2>
+                <p style="color: var(--color-text-secondary);">Métodos optimizados para hot paths. Sin builder, sin validaciones, máximo throughput.</p>
+
+                <div class="callout danger">
+                    <div class="callout-title"><i class="fas fa-shield-alt"></i> Advertencia de Seguridad</div>
+                    <p>Estos métodos omiten validaciones. Úsalos SOLO cuando garantices manualmente: <code>location.getWorld() != null</code>, chunk cargado, y <code>entity.isValid()</code>.</p>
                 </div>
-            </div>
 
-            <div class="method-card">
-                <h3><i class="fas fa-clock"></i> after()</h3>
-                <div class="signature">TaskBuilder after(long delay, TimeUnit unit)</div>
-                <p>Retraso con cualquier unidad temporal (se convierte internamente a ticks).</p>
-                <div class="code-block">
-                    <pre class="prettyprint">.after(2, TimeUnit.SECONDS)</pre>
+                <div class="method-grid">
+                    <div class="method-card"><h4><i class="fas fa-forward"></i> runDirect() <span class="badge direct">⚡</span></h4><div class="method-signature">void runDirect(Runnable runnable)</div><p style="font-size: 0.9rem;">Ejecución inmediata en hilo global. ~25% más rápido que task().run().</p></div>
+                    <div class="method-card"><h4><i class="fas fa-map-marker-alt"></i> runDirectAt() <span class="badge direct">⚡</span></h4><div class="method-signature">void runDirectAt(Location, Runnable)</div><p style="font-size: 0.9rem;">Ejecución en región de chunk. Ideal para procesamiento masivo de bloques.</p></div>
+                    <div class="method-card"><h4><i class="fas fa-user"></i> runDirectWith() <span class="badge direct">⚡</span></h4><div class="method-signature">void runDirectWith(Entity, Runnable)</div><p style="font-size: 0.9rem;">Ejecución en scheduler de entidad. Para bucles de actualización masiva.</p></div>
+                    <div class="method-card"><h4><i class="fas fa-hourglass"></i> runDirectLater() <span class="badge direct">⚡</span></h4><div class="method-signature">void runDirectLater(Runnable, long delayTicks)</div><p style="font-size: 0.9rem;">Retraso directo en ticks. Sin conversión de TimeUnit.</p></div>
+                    <div class="method-card"><h4><i class="fas fa-sync"></i> runDirectTimer() <span class="badge direct">⚡</span></h4><div class="method-signature">void runDirectTimer(Runnable, long periodTicks)</div><p style="font-size: 0.9rem;">Tarea periódica directa. Sin builder ni allocations extra.</p></div>
+                    <div class="method-card"><h4><i class="fas fa-stopwatch"></i> runTimerUntilFast() <span class="badge new">Nuevo</span></h4><div class="method-signature">Task runTimerUntilFast(Runnable, long, BooleanSupplier)</div><p style="font-size: 0.9rem;">Versión optimizada sin AtomicReference. ~15% más rápido.</p></div>
                 </div>
-            </div>
+            </section>
 
-            <div class="method-card">
-                <h3><i class="fas fa-stopwatch"></i> afterTicks()</h3>
-                <div class="signature">TaskBuilder afterTicks(long ticks)</div>
-                <p>Retraso directo en ticks de Minecraft (1 tick = 50ms). Más eficiente que after().</p>
-                <div class="code-block">
-                    <pre class="prettyprint">.afterTicks(20) // 1 segundo</pre>
-                </div>
-            </div>
-
-            <div class="method-card">
-                <h3><i class="fas fa-sync-alt"></i> every()</h3>
-                <div class="signature">TaskBuilder every(long period, TimeUnit unit)</div>
-                <p>Configura tarea repetitiva con unidad temporal.</p>
-                <div class="code-block">
-                    <pre class="prettyprint">.every(5, TimeUnit.SECONDS)</pre>
-                </div>
-            </div>
-
-            <div class="method-card">
-                <h3><i class="fas fa-sync"></i> everyTicks()</h3>
-                <div class="signature">TaskBuilder everyTicks(long ticks)</div>
-                <p>Intervalo repetitivo directo en ticks. Más eficiente que every().</p>
-                <div class="code-block">
-                    <pre class="prettyprint">.everyTicks(100) // Cada 5 segundos</pre>
-                </div>
-            </div>
-
-            <div class="method-card">
-                <h3><i class="fas fa-bug"></i> handleException()</h3>
-                <div class="signature">TaskBuilder handleException(Consumer&lt;Exception&gt; handler)</div>
-                <p>Manejador personalizado de errores. Si no se proporciona, se loguea por defecto.</p>
-                <div class="code-block">
-                    <pre class="prettyprint">.handleException(e -> {
-    plugin.getLogger().warning("Error: " + e.getMessage());
-})</pre>
-                </div>
-            </div>
-
-            <div class="method-card high-perf">
-                <h3><i class="fas fa-bolt"></i> unsafe() <span class="api-level-badge api-level-direct">Directo</span></h3>
-                <div class="signature">TaskBuilder unsafe()</div>
-                <p>⚠️ Desactiva validaciones de seguridad. Úsalo SOLO en hot paths donde garantizas parámetros válidos.</p>
-                <div class="note warning" style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">
-                    <strong>Requisitos:</strong> location.getWorld() != null, chunk cargado, entity.isValid() == true
-                </div>
-                <div class="code-block">
-                    <pre class="prettyprint">.at(location).unsafe().run() // Sin checks, máximo rendimiento</pre>
-                </div>
-            </div>
-
-            <div class="method-card">
-                <h3><i class="fas fa-check"></i> run()</h3>
-                <div class="signature">Task run()</div>
-                <p>Ejecuta la tarea configurada y devuelve objeto Task para cancelación manual.</p>
-                <div class="code-block">
-                    <pre class="prettyprint">Task task = builder.run();
-// Luego: task.cancel();</pre>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="section">
-    <div class="container">
-        <div class="section-title">
-            <h2><i class="fas fa-bolt"></i> API Directa (Alto Rendimiento)</h2>
-            <p style="color: var(--gray); margin-top: 0.5rem;">Métodos optimizados para hot paths. Sin builder, sin validaciones, máximo throughput.</p>
-        </div>
-
-        <div class="note danger">
-            <strong>⚠️ Advertencia:</strong> Estos métodos omiten validaciones de seguridad. Úsalos SOLO cuando:
-            <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
-                <li>Garantizas que Location.world != null</li>
-                <li>El chunk está cargado (para métodos con Location)</li>
-                <li>La entidad es válida (para métodos con Entity)</li>
-                <li>Estás en un bucle crítico donde cada microsegundo cuenta</li>
-            </ul>
-        </div>
-
-        <div class="method-grid">
-            <div class="method-card high-perf">
-                <h3><i class="fas fa-forward"></i> runDirect()</h3>
-                <div class="signature">void runDirect(Runnable runnable)</div>
-                <p>Ejecución inmediata en hilo global. Sin validaciones. ~25% más rápido que task().run().</p>
-                <div class="code-block">
-                    <pre class="prettyprint">MagmaLib.runDirect(() -> {
-    // Código crítico - garantizas que es seguro
-    counter.incrementAndGet();
-});</pre>
-                </div>
-            </div>
-
-            <div class="method-card high-perf">
-                <h3><i class="fas fa-map-marker-alt"></i> runDirectAt()</h3>
-                <div class="signature">void runDirectAt(Location location, Runnable runnable)</div>
-                <p>Ejecución en región de chunk. Omite checks de world/chunk. Ideal para procesamiento masivo de bloques.</p>
-                <div class="code-block">
-                    <pre class="prettyprint">// Procesar 1000 bloques rápidamente
-for (Location loc : blockLocations) {
-    MagmaLib.runDirectAt(loc, () -> {
-        loc.getBlock().setType(Material.AIR);
-    });
-}</pre>
-                </div>
-            </div>
-
-            <div class="method-card high-perf">
-                <h3><i class="fas fa-user"></i> runDirectWith()</h3>
-                <div class="signature">void runDirectWith(Entity entity, Runnable runnable)</div>
-                <p>Ejecución en scheduler de entidad. Sin validación de isValid(). Para bucles de actualización de entidades.</p>
-                <div class="code-block">
-                    <pre class="prettyprint">// Actualizar muchas entidades
-for (Entity entity : entities) {
-    MagmaLib.runDirectWith(entity, () -> {
-        entity.setCustomName("Actualizado");
-    });
-}</pre>
-                </div>
-            </div>
-
-            <div class="method-card high-perf">
-                <h3><i class="fas fa-hourglass-half"></i> runDirectLater()</h3>
-                <div class="signature">void runDirectLater(Runnable runnable, long delayTicks)</div>
-                <p>Retraso directo en ticks. Sin conversión de TimeUnit. Más eficiente para delays simples.</p>
-                <div class="code-block">
-                    <pre class="prettyprint">MagmaLib.runDirectLater(() -> {
-    player.sendMessage("Después de 20 ticks");
-}, 20); // 20 ticks = 1 segundo</pre>
-                </div>
-            </div>
-
-            <div class="method-card high-perf">
-                <h3><i class="fas fa-sync"></i> runDirectTimer()</h3>
-                <div class="signature">void runDirectTimer(Runnable runnable, long periodTicks)</div>
-                <p>Tarea periódica directa. Sin builder ni allocations extra. Para bucles de tick críticos.</p>
-                <div class="code-block">
-                    <pre class="prettyprint">// Actualizar contador cada tick
-MagmaLib.runDirectTimer(() -> {
-    globalCounter++;
-}, 1); // Cada tick</pre>
-                </div>
-            </div>
-
-            <div class="method-card high-perf">
-                <h3><i class="fas fa-stopwatch"></i> runTimerUntilFast()</h3>
-                <div class="signature">Task runTimerUntilFast(Runnable task, long periodTicks, BooleanSupplier stopCondition)</div>
-                <p>Versión optimizada de runTimerUntil: sin AtomicReference. ~15% más rápido para timers simples.</p>
-                <div class="code-block">
-                    <pre class="prettyprint">// Timer de UI que se detiene cuando el jugador se desconecta
-MagmaLib.runTimerUntilFast(() -> {
-    player.sendTitle("Cargando...", "", 10, 40, 10);
-}, 20, () -> !player.isOnline());</pre>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="section">
-    <div class="container">
-        <div class="section-title">
-            <h2><i class="fas fa-star"></i> Funciones Avanzadas</h2>
-        </div>
-
-        <div class="method-grid">
-            <div class="method-card new-feature">
-                <h3><i class="fas fa-redo"></i> runWithRetry()</h3>
-                <div class="signature">void runWithRetry(Runnable task, int maxAttempts, long delay, TimeUnit unit)</div>
-                <p>Ejecuta con reintentos automáticos usando scheduler (NO threads manuales). Compatible con Folia.</p>
-                <div class="code-block">
-                    <pre class="prettyprint">MagmaLib.runWithRetry(() -> {
-    connectToDatabase();
-}, 3, 5, TimeUnit.SECONDS);</pre>
-                </div>
-            </div>
-
-            <div class="method-card new-feature">
-                <h3><i class="fas fa-stop-circle"></i> runTimerUntil()</h3>
-                <div class="signature">Task runTimerUntil(Runnable task, long periodTicks, BooleanSupplier stopCondition)</div>
-                <p>Ejecuta periódicamente hasta que se cumpla una condición. Versión segura con AtomicReference.</p>
-                <div class="code-block">
-                    <pre class="prettyprint">MagmaLib.runTimerUntil(() -> {
-    player.sendTitle("Cargando...", "", 10, 40, 10);
-}, 20, () -> !player.isOnline());</pre>
-                </div>
-            </div>
-
-            <div class="method-card new-feature">
-                <h3><i class="fas fa-undo"></i> callSync()</h3>
-                <div class="signature">&lt;T&gt; CompletableFuture&lt;T&gt; callSync(Supplier&lt;T&gt; supplier)</div>
-                <p>Ejecuta en hilo principal y retorna valor con CompletableFuture. Ideal para operaciones que requieren resultado.</p>
-                <div class="code-block">
-                    <pre class="prettyprint">MagmaLib.callSync(() -> {
+            <!-- Async & Futures -->
+            <section id="async">
+                <h2><i class="fas fa-sync-alt"></i> Async & CompletableFuture</h2>
+                <div class="method-grid">
+                    <div class="method-card">
+                        <h4><i class="fas fa-cloud"></i> runAsync()</h4>
+                        <div class="method-signature">CompletableFuture&lt;Void&gt; runAsync(Runnable)</div>
+                        <p style="font-size: 0.9rem;">Ejecuta asíncronamente y retorna futuro para composición.</p>
+                        <div class="code-block">
+                            <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy"></i></button>
+                            <pre><code class="language-java">MagmaLib.runAsync(() -> {
+    return heavyComputation();
+}).thenAccept(result -> {
+    MagmaLib.runSync(() -> player.sendMessage(result));
+});</code></pre>
+                        </div>
+                    </div>
+                    <div class="method-card">
+                        <h4><i class="fas fa-arrow-right-arrow-left"></i> callSync()</h4>
+                        <div class="method-signature">&lt;T&gt; CompletableFuture&lt;T&gt; callSync(Supplier&lt;T&gt;)</div>
+                        <p style="font-size: 0.9rem;">Ejecuta en hilo principal y retorna valor vía CompletableFuture.</p>
+                        <div class="code-block">
+                            <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy"></i></button>
+                            <pre><code class="language-java">MagmaLib.callSync(() -> {
     return player.getInventory().getContents();
 }).thenAccept(items -> {
-    // Procesar items en hilo asíncrono
-});</pre>
-                </div>
-            </div>
-
-            <div class="method-card new-feature">
-                <h3><i class="fas fa-user-friends"></i> forAllPlayers()</h3>
-                <div class="signature">void forAllPlayers(Consumer&lt;Player&gt; action)</div>
-                <p>Itera jugadores con manejo seguro de errores y nulls. Ejecuta en hilo principal.</p>
-                <div class="code-block">
-                    <pre class="prettyprint">MagmaLib.forAllPlayers(player -> {
-    player.sendTitle("¡Evento!", "", 10, 40, 10);
-});</pre>
-                </div>
-            </div>
-
-            <div class="method-card new-feature">
-                <h3><i class="fas fa-map"></i> forAllLoadedChunks()</h3>
-                <div class="signature">void forAllLoadedChunks(Consumer&lt;Chunk&gt; action)</div>
-                <p>Procesa chunks cargados (ejecuta asíncrono por defecto). Incluye null checks para worlds/chunks.</p>
-                <div class="code-block">
-                    <pre class="prettyprint">MagmaLib.forAllLoadedChunks(chunk -> {
-    // Optimizar o analizar chunk
-    optimizeChunk(chunk);
-});</pre>
-                </div>
-            </div>
-
-            <div class="method-card">
-                <h3><i class="fas fa-exchange-alt"></i> ticksToMs() / msToTicks()</h3>
-                <div class="signature">long ticksToMs(long ticks) | long msToTicks(long ms)</div>
-                <p>Utilidades de conversión de tiempo. Usa multiplicación/división por 50L para máximo rendimiento.</p>
-                <div class="code-block">
-                    <pre class="prettyprint">long ms = MagmaLib.ticksToMs(20); // 1000
-long ticks = MagmaLib.msToTicks(1000); // 20</pre>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="section">
-    <div class="container">
-        <div class="section-title">
-            <h2><i class="fas fa-table"></i> Compatibilidad</h2>
-        </div>
-
-        <table class="compatibility-table">
-            <thead>
-            <tr>
-                <th>Característica</th>
-                <th>Paper/Spigot</th>
-                <th>Folia</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr><td><code>task().run()</code></td><td>✅ Bukkit Scheduler</td><td>✅ GlobalRegionScheduler</td></tr>
-            <tr><td><code>task().at(location)</code></td><td>✅ Main Thread</td><td>✅ RegionScheduler</td></tr>
-            <tr><td><code>task().with(entity)</code></td><td>✅ Main Thread</td><td>✅ EntityScheduler</td></tr>
-            <tr><td><code>task().async()</code></td><td>✅ Async Scheduler</td><td>✅ AsyncScheduler</td></tr>
-            <tr><td><code>afterTicks()</code></td><td>✅ Convertido a ticks</td><td>✅ Convertido a ticks</td></tr>
-            <tr><td><code>handleException()</code></td><td>✅ Try-catch interno</td><td>✅ Try-catch interno</td></tr>
-            <tr><td><code>runDirectAt()</code></td><td>✅ Main Thread</td><td>✅ RegionScheduler (sin checks)</td></tr>
-            <tr><td><code>runDirectWith()</code></td><td>✅ Main Thread</td><td>✅ EntityScheduler (sin checks)</td></tr>
-            </tbody>
-        </table>
-
-        <div class="note">
-            <strong>Nota:</strong> MagmaLib detecta automáticamente el tipo de servidor y usa el scheduler apropiado.
-            Tu código funciona en ambos sin modificaciones.
-        </div>
-    </div>
-</section>
-
-<section class="section">
-    <div class="container">
-        <div class="section-title">
-            <h2><i class="fas fa-chart-line"></i> Rendimiento Comparado</h2>
-        </div>
-
-        <table class="performance-table">
-            <thead>
-            <tr>
-                <th>Escenario (10k iteraciones)</th>
-                <th>FoliaLib</th>
-                <th>MagmaLib (Standard)</th>
-                <th>MagmaLib (Direct)</th>
-                <th>Mejora</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr><td>Tarea global simple</td><td>1.2 ms</td><td>1.4 ms</td><td class="best">0.9 ms</td><td>+25%</td></tr>
-            <tr><td>Tarea en región (chunk cargado)</td><td>1.5 ms</td><td>1.8 ms</td><td class="best">1.1 ms</td><td>+27%</td></tr>
-            <tr><td>Tarea periódica (100 ticks)</td><td>2.1 ms</td><td>2.4 ms</td><td class="best">1.6 ms</td><td>+33%</td></tr>
-            <tr><td>Bucle con validaciones</td><td>3.8 ms</td><td>4.2 ms</td><td class="best">2.1 ms</td><td>+47%</td></tr>
-            </tbody>
-        </table>
-
-        <div class="note">
-            <strong>Conclusión:</strong> MagmaLib en modo directo es <strong>~25-47% más rápido</strong> que FoliaLib en hot paths,
-            mientras mantiene compatibilidad total y una API amigable para desarrollo normal.
-        </div>
-    </div>
-</section>
-
-<section class="section">
-    <div class="container">
-        <div class="section-title">
-            <h2><i class="fas fa-users"></i> Manejo de Entidades</h2>
-        </div>
-
-        <div class="entity-section">
-            <h3 style="margin-bottom: 1rem; color: var(--primary);">
-                <i class="fas fa-lightbulb"></i> Mejores Prácticas
-            </h3>
-            <p>Siempre usa <code>.with(entity)</code> para operaciones con entidades en Folia:</p>
-            <ul style="margin: 1rem 0 1rem 2rem;">
-                <li>✅ Ejecución en el scheduler correcto de la entidad</li>
-                <li>✅ Cancelación automática si la entidad se elimina</li>
-                <li>✅ Prevención de race conditions en Folia</li>
-                <li>✅ Fallback seguro a Paper si no es Folia</li>
-            </ul>
-
-            <div class="method-grid">
-                <div class="method-card">
-                    <h3><i class="fas fa-code"></i> Ejemplo Básico</h3>
-                    <div class="code-block">
-                        <pre class="prettyprint">MagmaLib.task(() -> {
-    if (entity.isValid()) {
-        entity.setCustomName("Procesado");
-    }
-})
-.with(entity)
-.run();</pre>
+    // Procesar en hilo asíncrono
+});</code></pre>
+                        </div>
                     </div>
                 </div>
+            </section>
 
-                <div class="method-card">
-                    <h3><i class="fas fa-shield-alt"></i> Validación Avanzada</h3>
-                    <div class="code-block">
-                        <pre class="prettyprint">MagmaLib.task(() -> {
+            <!-- Helpers -->
+            <section id="helpers">
+                <h2><i class="fas fa-wrench"></i> Utilidades Avanzadas</h2>
+                <div class="method-grid">
+                    <div class="method-card"><h4><i class="fas fa-redo"></i> runWithRetry() <span class="badge new">Nuevo</span></h4><div class="method-signature">void runWithRetry(Runnable, int, long, TimeUnit)</div><p style="font-size: 0.9rem;">Ejecuta con reintentos automáticos. Compatible con Folia.</p></div>
+                    <div class="method-card"><h4><i class="fas fa-stop-circle"></i> runTimerUntil() <span class="badge new">Nuevo</span></h4><div class="method-signature">Task runTimerUntil(Runnable, long, BooleanSupplier)</div><p style="font-size: 0.9rem;">Ejecuta periódicamente hasta que se cumpla una condición.</p></div>
+                    <div class="method-card"><h4><i class="fas fa-user-friends"></i> forAllPlayers()</h4><div class="method-signature">void forAllPlayers(Consumer&lt;Player&gt;)</div><p style="font-size: 0.9rem;">Itera jugadores con manejo seguro de errores. Ejecuta en hilo principal.</p></div>
+                    <div class="method-card"><h4><i class="fas fa-map"></i> forAllLoadedChunks()</h4><div class="method-signature">void forAllLoadedChunks(Consumer&lt;Chunk&gt;)</div><p style="font-size: 0.9rem;">Procesa chunks cargados (ejecuta asíncrono por defecto).</p></div>
+                    <div class="method-card"><h4><i class="fas fa-exchange-alt"></i> ticksToMs() / msToTicks()</h4><div class="method-signature">long ticksToMs(long) | long msToTicks(long)</div><p style="font-size: 0.9rem;">Conversión de tiempo optimizada (multiplicación por 50L).</p></div>
+                    <div class="method-card"><h4><i class="fas fa-shield-check"></i> executeIfLoaded()</h4><div class="method-signature">void executeIfLoaded(Location, Runnable)</div><p style="font-size: 0.9rem;">Ejecuta solo si el chunk de la ubicación está cargado.</p></div>
+                </div>
+            </section>
+
+            <!-- Manejo de Entidades -->
+            <section id="entidades">
+                <h2><i class="fas fa-users"></i> Manejo de Entidades</h2>
+                <div class="callout success">
+                    <div class="callout-title"><i class="fas fa-lightbulb"></i> Mejor Práctica</div>
+                    <p>Siempre usa <code>.with(entity)</code> para operaciones con entidades en Folia. Garantiza ejecución en el scheduler correcto y previene race conditions.</p>
+                </div>
+
+                <h3>Ejemplo: Actualización Segura</h3>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy"></i> Copiar</button>
+                    <pre><code class="language-java">MagmaLib.task(() -> {
     if (!entity.isValid() || entity.isDead()) return;
+
+    // Operaciones seguras con la entidad
+    entity.setCustomName("§aProcesado");
     entity.setGlowing(true);
 })
-.with(entity)
-.cancelIf(() -> !player.isOnline())
-.handleException(e -> {
-    plugin.getLogger().warning("Error: " + e.getMessage());
-})
-.run();</pre>
-                    </div>
+.with(entity)  //  Routing correcto en Folia
+.cancelIf(() -> !entity.isValid())  //  Cancelación automática
+.handleException(e -> getLogger().warning("Error: " + e.getMessage()))
+.run();</code></pre>
                 </div>
 
-                <div class="method-card high-perf">
-                    <h3><i class="fas fa-bolt"></i> Modo Alto Rendimiento</h3>
-                    <div class="note warning" style="margin: 0 0 0.5rem 0; font-size: 0.9rem;">
-                        ⚠️ Solo si garantizas entity.isValid() == true
-                    </div>
-                    <div class="code-block">
-                        <pre class="prettyprint">// Para bucles de actualización masiva
+                <h3>Modo Alto Rendimiento (⚠️)</h3>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)"><i class="fas fa-copy"></i> Copiar</button>
+                    <pre><code class="language-java">// Solo si garantizas entity.isValid() == true
 for (Entity entity : entities) {
     MagmaLib.task(() -> {
         entity.setCustomName("Updated");
     })
     .with(entity)
-    .unsafe()  // Omite isValid() check
+    .unsafe()  // ⚠️ Omite isValid() check
     .run();
-}</pre>
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- Compatibilidad -->
+            <section id="compatibilidad">
+                <h2><i class="fas fa-table"></i> Compatibilidad</h2>
+                <div class="table-wrapper">
+                    <table>
+                        <thead><tr><th>Característica</th><th>Paper/Spigot</th><th>Folia</th></tr></thead>
+                        <tbody>
+                        <tr><td><code>task().run()</code></td><td class="status-yes">✅ Bukkit Scheduler</td><td class="status-yes">✅ GlobalRegionScheduler</td></tr>
+                        <tr><td><code>task().at(location)</code></td><td class="status-yes">✅ Main Thread</td><td class="status-yes">✅ RegionScheduler</td></tr>
+                        <tr><td><code>task().with(entity)</code></td><td class="status-yes">✅ Main Thread</td><td class="status-yes">✅ EntityScheduler</td></tr>
+                        <tr><td><code>task().async()</code></td><td class="status-yes">✅ Async Scheduler</td><td class="status-yes">✅ AsyncScheduler</td></tr>
+                        <tr><td><code>runDirectAt()</code></td><td class="status-yes">✅ Main Thread</td><td class="status-yes">✅ RegionScheduler</td></tr>
+                        <tr><td><code>runDirectWith()</code></td><td class="status-yes">✅ Main Thread</td><td class="status-yes">✅ EntityScheduler</td></tr>
+                        <tr><td><code>cancelIfUnloaded</code></td><td class="status-yes">✅ Verificación</td><td class="status-yes">✅ Verificación</td></tr>
+                        <tr><td><code>handleException</code></td><td class="status-yes">✅ Try-catch</td><td class="status-yes">✅ Try-catch</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="callout">
+                    <p><strong>Nota:</strong> MagmaLib detecta automáticamente el tipo de servidor y usa el scheduler apropiado. Tu código funciona en ambos sin modificaciones.</p>
+                </div>
+            </section>
+
+            <!-- Rendimiento -->
+            <section id="rendimiento">
+                <h2><i class="fas fa-chart-line"></i> Rendimiento Comparado</h2>
+                <p style="color: var(--color-text-secondary);">Benchmark: 10,000 iteraciones de tareas simples en servidor de prueba.</p>
+                <div class="table-wrapper">
+                    <table>
+                        <thead><tr><th>Escenario</th><th>FoliaLib</th><th>MagmaLib (Standard)</th><th>MagmaLib (Direct)</th><th>Mejora</th></tr></thead>
+                        <tbody>
+                        <tr><td>Tarea global simple</td><td>1.2 ms</td><td>1.4 ms</td><td><strong>0.9 ms</strong></td><td class="status-yes">+25%</td></tr>
+                        <tr><td>Tarea en región</td><td>1.5 ms</td><td>1.8 ms</td><td><strong>1.1 ms</strong></td><td class="status-yes">+27%</td></tr>
+                        <tr><td>Tarea periódica</td><td>2.1 ms</td><td>2.4 ms</td><td><strong>1.6 ms</strong></td><td class="status-yes">+33%</td></tr>
+                        <tr><td>Bucle con validaciones</td><td>3.8 ms</td><td>4.2 ms</td><td><strong>2.1 ms</strong></td><td class="status-yes">+47%</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="callout success">
+                    <p><strong>Conclusión:</strong> MagmaLib en modo directo es <strong>~25-47% más rápido</strong> que alternativas en hot paths, manteniendo compatibilidad total y API amigable.</p>
+                </div>
+            </section>
+
+            <!-- FAQ -->
+            <section id="faq">
+                <h2><i class="fas fa-question-circle"></i> Preguntas Frecuentes</h2>
+                <div class="method-grid">
+                    <div class="method-card">
+                        <h4><i class="fas fa-question"></i> ¿Cuándo usar API Directa?</h4>
+                        <p style="font-size: 0.9rem;"><strong>Usa runDirect* cuando:</strong></p>
+                        <ul style="font-size: 0.9rem;">
+                            <li>Procesas 100+ bloques/entidades por tick</li>
+                            <li>Estás en un bucle crítico de rendimiento</li>
+                            <li>Garantizas manualmente la validez de parámetros</li>
+                        </ul>
+                        <p style="margin-top: var(--spacing-sm); font-size: 0.9rem;"><strong>Usa Task Builder cuando:</strong></p>
+                        <ul style="font-size: 0.9rem;">
+                            <li>Desarrollas lógica de negocio normal</li>
+                            <li>Priorizas legibilidad y mantenimiento</li>
+                            <li>Quieres validaciones automáticas de seguridad</li>
+                        </ul>
+                    </div>
+                    <div class="method-card">
+                        <h4><i class="fas fa-shield-alt"></i> ¿Es seguro usar .unsafe()?</h4>
+                        <p style="font-size: 0.9rem;">Sí, si sigues estas reglas:</p>
+                        <ul style="font-size: 0.9rem;">
+                            <li>✅ Valida manualmente antes de llamar</li>
+                            <li>✅ Úsalo solo en código que controlas totalmente</li>
+                            <li>✅ Documenta por qué es seguro en ese contexto</li>
+                            <li>❌ Nunca lo uses con inputs de usuario o datos externos</li>
+                        </ul>
+                    </div>
+                    <div class="method-card">
+                        <h4><i class="fas fa-sync"></i> ¿Funciona en Paper y Folia?</h4>
+                        <p style="font-size: 0.9rem;">✅ Sí, 100% compatible. MagmaLib detecta automáticamente el tipo de servidor y usa el scheduler apropiado:</p>
+                        <ul style="font-size: 0.9rem; margin-top: var(--spacing-sm);">
+                            <li><strong>Folia:</strong> RegionScheduler, EntityScheduler, GlobalRegionScheduler</li>
+                            <li><strong>Paper/Spigot:</strong> Bukkit Scheduler tradicional</li>
+                        </ul>
+                        <p style="margin-top: var(--spacing-sm); font-size: 0.9rem;">Tu código no necesita cambios para funcionar en ambos.</p>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-</section>
+            </section>
 
-
-<section class="section">
-    <div class="container">
-        <div class="section-title">
-            <h2><i class="fas fa-question-circle"></i> FAQ</h2>
         </div>
 
-        <div class="method-grid">
-            <div class="method-card">
-                <h3><i class="fas fa-question"></i> ¿Cuándo usar API Directa?</h3>
-                <p><strong>Usa runDirect* cuando:</strong></p>
-                <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
-                    <li>Procesas 100+ bloques/entidades por tick</li>
-                    <li>Estás en un bucle crítico de rendimiento</li>
-                    <li>Garantizas manualmente la validez de parámetros</li>
-                </ul>
-                <p style="margin-top: 0.5rem;"><strong>Usa Task Builder cuando:</strong></p>
-                <ul style="margin-left: 1.5rem;">
-                    <li>Desarrollas lógica de negocio normal</li>
-                    <li>Priorizas legibilidad y mantenimiento</li>
-                    <li>Quieres validaciones automáticas de seguridad</li>
-                </ul>
+        <!-- Footer -->
+        <footer class="footer">
+            <p>MagmaLib v1.2 &copy; 2026 &bull; Liberado bajo licencia MIT</p>
+            <div class="footer-links">
+                <a href="https://github.com/MagmaEnginers/MagmaLib" target="_blank"><i class="fab fa-github"></i> GitHub</a>
+                <a href="#" onclick="return false;" style="opacity: 0.5; cursor: not-allowed;"><i class="fab fa-discord"></i> Discord</a>
+                <a href="#" onclick="return false;" style="opacity: 0.5; cursor: not-allowed;"><i class="fas fa-history"></i> Changelog</a>
+                <a href="https://github.com/MagmaEnginers/MagmaLib/issues" target="_blank"><i class="fas fa-bug"></i> Reportar Issue</a>
             </div>
+        </footer>
 
-            <div class="method-card">
-                <h3><i class="fas fa-shield-alt"></i> ¿Es seguro usar .unsafe()?</h3>
-                <p>Sí, si sigues estas reglas:</p>
-                <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
-                    <li>✅ Valida manualmente antes de llamar</li>
-                    <li>✅ Úsalo solo en código que controlas totalmente</li>
-                    <li>✅ Documenta por qué es seguro en ese contexto</li>
-                    <li>❌ Nunca lo uses con inputs de usuario o datos externos</li>
-                </ul>
-                <div class="code-block" style="margin-top: 0.5rem;">
-                    <pre class="prettyprint">// ✅ Seguro: validación manual antes
-if (loc.getWorld() != null && loc.getWorld().isChunkLoaded(...)) {
-    MagmaLib.task(task).at(loc).unsafe().run();
-}</pre>
-                </div>
-            </div>
+    </main>
+</div>
 
-            <div class="method-card">
-                <h3><i class="fas fa-sync"></i> ¿MagmaLib funciona en Paper y Folia?</h3>
-                <p>✅ Sí, 100% compatible. MagmaLib detecta automáticamente el tipo de servidor y usa el scheduler apropiado:</p>
-                <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
-                    <li><strong>Folia:</strong> RegionScheduler, EntityScheduler, GlobalRegionScheduler</li>
-                    <li><strong>Paper/Spigot:</strong> Bukkit Scheduler tradicional</li>
-                </ul>
-                <p style="margin-top: 0.5rem;">Tu código no necesita cambios para funcionar en ambos.</p>
-            </div>
-        </div>
-    </div>
-</section>
-
-<footer>
-    <div class="container">
-        <p>MagmaLib v1.2 &copy; 2026 - Liberado bajo licencia MIT</p>
-        <div class="footer-links">
-            <a href="https://github.com/Piratemajo/MagmaLib" target="_blank">
-                <i class="fab fa-github"></i> GitHub
-            </a>
-            <a href="#" onclick="alert('Próximamente'); return false;">
-                <i class="fab fa-discord"></i> Discord
-            </a>
-            <a href="#" onclick="alert('Próximamente'); return false;">
-                <i class="fas fa-history"></i> Changelog
-            </a>
-            <a href="#" onclick="alert('Próximamente'); return false;">
-                <i class="fas fa-book"></i> Wiki
-            </a>
-        </div>
-    </div>
-</footer>
-
+<!-- ===== JAVASCRIPT ===== -->
 <script>
-    // Toggle tema oscuro/claro
-    function toggleTheme() {
-        const html = document.documentElement;
-        const current = html.getAttribute('data-theme');
-        const next = current === 'dark' ? 'light' : 'dark';
-        html.setAttribute('data-theme', next);
-        localStorage.setItem('theme', next);
+    // ===== Theme Toggle =====
+    const themeToggle = document.getElementById('themeToggle');
+    const html = document.documentElement;
 
-        // Actualizar ícono del botón
-        const btn = document.querySelector('.theme-toggle i');
-        btn.className = next === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    function setTheme(theme) {
+        html.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+        themeToggle.innerHTML = theme === 'dark'
+            ? '<i class="fas fa-sun"></i><span class="hidden-sm">Claro</span>'
+            : '<i class="fas fa-moon"></i><span class="hidden-sm">Oscuro</span>';
     }
 
-    // Cargar tema guardado
-    document.addEventListener('DOMContentLoaded', () => {
-        const saved = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', saved);
-        const btn = document.querySelector('.theme-toggle i');
-        btn.className = saved === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    setTheme(savedTheme);
+    themeToggle.addEventListener('click', () => {
+        const current = html.getAttribute('data-theme');
+        setTheme(current === 'dark' ? 'light' : 'dark');
     });
 
-    // Búsqueda simple en la documentación
-    document.addEventListener('DOMContentLoaded', () => {
-        const searchInput = document.createElement('input');
-        searchInput.type = 'text';
-        searchInput.placeholder = 'Buscar métodos...';
-        searchInput.className = 'search-input';
-        searchInput.style.cssText = 'width: 100%; padding: 0.75rem; margin: 1rem 0; border: 1px solid var(--border); border-radius: 5px; background: var(--light); color: var(--dark);';
+    // ===== Mobile Menu Toggle =====
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebar = document.getElementById('sidebar');
 
-        const firstSection = document.querySelector('.section');
-        if (firstSection) {
-            const searchContainer = document.createElement('div');
-            searchContainer.className = 'search-container';
-            searchContainer.innerHTML = '<i class="fas fa-search"></i>';
-            searchContainer.appendChild(searchInput);
-            firstSection.insertBefore(searchContainer, firstSection.firstChild);
+    menuToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('open');
+    });
 
-            searchInput.addEventListener('input', (e) => {
-                const term = e.target.value.toLowerCase();
-                document.querySelectorAll('.method-card').forEach(card => {
-                    const text = card.textContent.toLowerCase();
-                    card.style.display = text.includes(term) ? '' : 'none';
-                });
-            });
+    document.addEventListener('click', (e) => {
+        if (window.innerWidth <= 1024 &&
+            !sidebar.contains(e.target) &&
+            !menuToggle.contains(e.target) &&
+            sidebar.classList.contains('open')) {
+            sidebar.classList.remove('open');
         }
     });
+
+    // ===== Copy Code Button =====
+    function copyCode(btn) {
+        const pre = btn.nextElementSibling;
+        const code = pre.querySelector('code').textContent;
+
+        navigator.clipboard.writeText(code).then(() => {
+            btn.classList.add('copied');
+            btn.innerHTML = '<i class="fas fa-check"></i> Copiado';
+            setTimeout(() => {
+                btn.classList.remove('copied');
+                btn.innerHTML = '<i class="fas fa-copy"></i> Copiar';
+            }, 2000);
+        });
+    }
+
+    // ===== Search Functionality =====
+    const searchInput = document.getElementById('searchInput');
+    const sections = document.querySelectorAll('section[id]');
+    const navItems = document.querySelectorAll('.nav-item');
+
+    searchInput.addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase().trim();
+        sections.forEach(section => {
+            const text = section.textContent.toLowerCase();
+            const matches = !term || text.includes(term);
+            section.style.display = matches ? '' : 'none';
+        });
+        navItems.forEach(item => {
+            const sectionId = item.dataset.section;
+            const section = document.getElementById(sectionId);
+            if (section) item.style.display = section.style.display;
+        });
+    });
+
+    // ===== Active Nav Item on Scroll =====
+    const observerOptions = { rootMargin: '-20% 0px -60% 0px', threshold: 0 };
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const id = entry.target.getAttribute('id');
+                navItems.forEach(item => {
+                    item.classList.remove('active');
+                    if (item.dataset.section === id) item.classList.add('active');
+                });
+            }
+        });
+    }, observerOptions);
+
+    sections.forEach(section => observer.observe(section));
+
+    // ===== Smooth Scroll for Nav Links =====
+    document.querySelectorAll('.nav-item[href^="#"]').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetId = link.getAttribute('href').substring(1);
+            const target = document.getElementById(targetId);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth' });
+                if (window.innerWidth <= 1024) sidebar.classList.remove('open');
+            }
+        });
+    });
 </script>
+
 </body>
 </html>

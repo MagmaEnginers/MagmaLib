@@ -7,8 +7,6 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Java](https://img.shields.io/badge/java-21+-orange.svg)](https://adoptium.net/)
 [![Platform](https://img.shields.io/badge/platform-Paper%20%7C%20Folia-lightgrey.svg)](https://papermc.io/)
-[![JitPack](https://jitpack.io/v/Piratemajo/MagmaLib.svg)](https://jitpack.io/#Piratemajo/MagmaLib)
-
 ---
 
 ## 📋 Índice
