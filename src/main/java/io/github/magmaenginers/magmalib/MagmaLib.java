@@ -131,8 +131,8 @@ public class MagmaLib {
      * @param runnable el código a ejecutar
      * @return un nuevo {@link TaskBuilder} para configuración adicional
      */
-    public static TaskBuilder task(Runnable runnable) {
-        return new TaskBuilder(runnable);
+    public static TaskBuilder<Void> task(Runnable runnable) {
+        return new TaskBuilder<Void>(runnable);
     }
 
     // ==================== TASK BUILDER - GENERIC (Type-Safe Composition) ====================
@@ -175,7 +175,7 @@ public class MagmaLib {
         private boolean cancelIfUnloaded = true;
         private boolean unsafe = false;
         private BooleanSupplier cancelCondition;
-        private Consumer<Exception> exceptionHandler;
+        private Consumer<Throwable> exceptionHandler;
         private String taskName; // Para debugging/contexto
 
         // Modo Runnable (backward compatible)
@@ -323,12 +323,14 @@ public class MagmaLib {
         }
 
         /**
-         * Establece manejador personalizado para excepciones.
+         * Establece manejador personalizado para errores.
+         * <p>
+         * Acepta cualquier {@link Throwable}, incluyendo {@link Exception} y {@link Error}.
          *
-         * @param handler consumidor para procesar la excepción
+         * @param handler consumidor para procesar el error
          * @return este builder para encadenamiento
          */
-        public TaskBuilder<T> handleException(Consumer<Exception> handler) {
+        public TaskBuilder<T> handleException(Consumer<Throwable> handler) {
             this.exceptionHandler = handler;
             return this;
         }
@@ -455,12 +457,12 @@ public class MagmaLib {
                         if (thenAccept != null) {
                             thenAccept.accept(result);
                         }
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
                         if (exceptionally != null) {
                             try {
                                 exceptionally.apply(e);
                                 return;
-                            } catch (Exception fallbackError) {
+                            } catch (Throwable fallbackError) {
                                 if (exceptionHandler != null) {
                                     exceptionHandler.accept(fallbackError);
                                 } else {
@@ -489,7 +491,7 @@ public class MagmaLib {
                 if (cancelCondition == null || !cancelCondition.getAsBoolean()) {
                     action.run();
                 }
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 if (exceptionHandler != null) {
                     exceptionHandler.accept(e);
                 } else {
@@ -782,7 +784,7 @@ public class MagmaLib {
             try {
                 runnable.run();
                 future.complete(null);
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 future.completeExceptionally(e);
             }
         }).async().run();
@@ -794,7 +796,7 @@ public class MagmaLib {
         task(() -> {
             try {
                 future.complete(supplier.get());
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 future.completeExceptionally(e);
             }
         }).async().run();
@@ -818,7 +820,7 @@ public class MagmaLib {
         runSync(() -> {
             try {
                 future.complete(supplier.get());
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 future.completeExceptionally(e);
             }
         });
@@ -831,7 +833,7 @@ public class MagmaLib {
                 if (player != null) {
                     try {
                         action.accept(player);
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
                         plugin.getLogger().warning("Error procesando jugador " + player.getName() + ": " + safeMessage(e));
                     }
                 }
@@ -847,7 +849,7 @@ public class MagmaLib {
                         if (chunk != null) {
                             try {
                                 action.accept(chunk);
-                            } catch (Exception e) {
+                            } catch (Throwable e) {
                                 plugin.getLogger().warning("Error procesando chunk: " + safeMessage(e));
                             }
                         }
@@ -886,7 +888,7 @@ public class MagmaLib {
             public void run() {
                 try {
                     task.run();
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     attempts++;
                     if (attempts < maxAttempts) {
                         runLater(this, delayBetweenAttempts, unit);
