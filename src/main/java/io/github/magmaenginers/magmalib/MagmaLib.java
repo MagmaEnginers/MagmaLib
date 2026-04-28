@@ -546,7 +546,7 @@ public class MagmaLib {
         }
 
         private Task runAsync() {
-            Runnable safeRunnable = () -> executeSafely(() -> {});
+            Runnable safeRunnable = () -> executeSafely(runnable);
 
             if (isFolia()) {
                 AsyncScheduler scheduler = Bukkit.getAsyncScheduler();
@@ -592,7 +592,7 @@ public class MagmaLib {
 
                 long delayTicks = toFoliaSafeTicks(delay > 0 ? delay : 0, period > 0, true);
                 long periodTicks = toFoliaSafeTicks(period, period > 0, false);
-                Runnable safeRunnable = () -> executeSafely(() -> {});
+                Runnable safeRunnable = () -> executeSafely(runnable);
 
                 if (period > 0) {
                     // Folia requiere delay >= 1 para runAtFixedRate
@@ -619,7 +619,7 @@ public class MagmaLib {
 
                 long delayTicks = toFoliaSafeTicks(delay > 0 ? delay : 0, period > 0, true);
                 long periodTicks = toFoliaSafeTicks(period, period > 0, false);
-                Runnable safeRunnable = () -> executeSafely(() -> {});
+                Runnable safeRunnable = () -> executeSafely(runnable);
 
                 if (period > 0) {
                     long safeDelay = delay <= 0 ? 1 : delayTicks;
@@ -641,7 +641,7 @@ public class MagmaLib {
 
                 long delayTicks = toFoliaSafeTicks(delay > 0 ? delay : 0, period > 0, true);
                 long periodTicks = toFoliaSafeTicks(period, period > 0, false);
-                Runnable safeRunnable = () -> executeSafely(() -> {});
+                Runnable safeRunnable = () -> executeSafely(runnable);
 
                 if (period > 0) {
                     // Folia requiere delay >= 1 para runAtFixedRate
@@ -657,7 +657,7 @@ public class MagmaLib {
                 BukkitTask task;
                 long delayTicks = delay > 0 ? delay / 50L : 0;
                 long periodTicks = period > 0 ? period / 50L : 0;
-                Runnable safeRunnable = () -> executeSafely(() -> {});
+                Runnable safeRunnable = () -> executeSafely(runnable);
 
                 if (period > 0) {
                     task = Bukkit.getScheduler().runTaskTimer(plugin, safeRunnable, Math.max(0, delayTicks), Math.max(1, periodTicks));

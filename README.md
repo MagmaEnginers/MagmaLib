@@ -1,4 +1,4 @@
-# 🔥 MagmaLib v1.2
+# 🔥 MagmaLib v2.0.3
 
 > **API moderna para scheduling compatible con Paper y Folia**  
 > *Diseñada para máximo rendimiento, seguridad por defecto y experiencia de desarrollo excepcional*
