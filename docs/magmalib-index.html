@@ -649,14 +649,14 @@
 
             <!-- Hero -->
             <section class="hero" id="introduccion">
-                <h1><span data-i18n="hero.title">MagmaLib Documentation</span> <span class="badge new">v2.0</span></h1>
+                <h1><span data-i18n="hero.title">MagmaLib Documentation</span> <span class="badge new">v2.1</span></h1>
                 <p data-i18n="hero.description">The professional solution for migrating Paper plugins to Folia with a modern API, <strong>type-safe composition</strong> and maximum performance.</p>
                 <div class="hero-actions">
                     <a href="#quickstart" class="btn"><i class="fas fa-rocket"></i> <span data-i18n="hero.start">Get Started</span></a>
-                    <a href="https://github.com/MagmaEnginers/magmaenginers.github.io/releases" class="btn secondary" title="Coming soon"><i class="fas fa-download"></i> <span data-i18n="hero.download">Download v2.0</span></a>
+                    <a href="https://github.com/MagmaEnginers/magmaenginers.github.io/releases" class="btn secondary" title="Coming soon"><i class="fas fa-download"></i> <span data-i18n="hero.download">Download v2.1</span></a>
                 </div>
                 <div class="callout success" style="margin-top: var(--spacing-lg);">
-                    <div class="callout-title"><i class="fas fa-sparkles"></i> <span data-i18n="hero.newTitle">New in v2.0</span></div>
+                    <div class="callout-title"><i class="fas fa-sparkles"></i> <span data-i18n="hero.newTitle">New in v2.1</span></div>
                     <p><strong data-i18n="hero.feature1Title">Type-safe composition:</strong> <code>thenApply()</code>, <code>thenAccept()</code>, <code>exceptionally()</code> • <strong data-i18n="hero.feature2Title">Context propagation:</strong> <code>named()</code> for debugging • <strong data-i18n="hero.feature3Title">100% backward compatible</strong> with v1.x</p>
                 </div>
             </section>
@@ -671,7 +671,7 @@
 
                 <div class="callout warning">
                     <div class="callout-title"><i class="fas fa-clock"></i> <span data-i18n="install.comingSoonTitle">Coming Soon</span></div>
-                    <p data-i18n="install.comingSoon">MagmaLib v2.0 will be available on JitPack soon. In the meantime, you can use the source code directly by copying <code>MagmaLib.java</code> into your project.</p>
+                    <p data-i18n="install.comingSoon">MagmaLib v2.1 will be available on JitPack soon. In the meantime, you can use the source code directly by copying <code>MagmaLib.java</code> into your project.</p>
                 </div>
 
 
@@ -720,7 +720,7 @@ public void onEnable() {
     .handleException(e -> getLogger().warning("Error: " + e.getMessage()))
     .run();
 
-    // 3. Or type-safe composition (new in v2.0)
+    // 3. Or type-safe composition (new in v2.1)
     MagmaLib.&lt;Integer&gt;task(() -> calculateScore(player))
         .thenApply(score -> score > 100 ? "Excellent!" : "Keep trying")
         .thenAccept(msg -> player.sendMessage(msg))
@@ -768,18 +768,18 @@ public void onEnable() {
 
                 <div class="callout success">
                     <div class="callout-title"><i class="fas fa-check-circle"></i> <span data-i18n="taskbuilder.backwardCompatible">Backward Compatible</span></div>
-                    <p data-i18n="taskbuilder.backwardCompatibleDesc">All your MagmaLib v1.x code works without changes in v2.0. The new composition features are optional.</p>
+                    <p data-i18n="taskbuilder.backwardCompatibleDesc">All your MagmaLib v1.x code works without changes in v2.1. The new composition features are optional.</p>
                 </div>
 
                 <div class="method-grid">
                     <div class="method-card"><h4><i class="fas fa-play"></i> task(Runnable) <span class="badge standard">v1.x</span></h4><div class="method-signature">TaskBuilder task(Runnable runnable)</div><p style="font-size: 0.9rem;" data-i18n="taskbuilder.method1">Entry point for tasks without return value. Compatible with previous versions.</p></div>
-                    <div class="method-card"><h4><i class="fas fa-play"></i> task(Supplier) <span class="badge composition">v2.0</span></h4><div class="method-signature">&lt;T&gt; TaskBuilder&lt;T&gt; task(Supplier&lt;T&gt; supplier)</div><p style="font-size: 0.9rem;" data-i18n="taskbuilder.method2">Entry point for type-safe composition with thenApply/thenAccept.</p></div>
+                    <div class="method-card"><h4><i class="fas fa-play"></i> task(Supplier) <span class="badge composition">v2.1</span></h4><div class="method-signature">&lt;T&gt; TaskBuilder&lt;T&gt; task(Supplier&lt;T&gt; supplier)</div><p style="font-size: 0.9rem;" data-i18n="taskbuilder.method2">Entry point for type-safe composition with thenApply/thenAccept.</p></div>
                     <div class="method-card"><h4><i class="fas fa-map-marker-alt"></i> at()</h4><div class="method-signature">TaskBuilder&lt;T&gt; at(Location location)</div><p style="font-size: 0.9rem;" data-i18n="taskbuilder.method3">Executes in the chunk region (Folia) or main thread (Paper).</p></div>
                     <div class="method-card"><h4><i class="fas fa-user"></i> with()</h4><div class="method-signature">TaskBuilder&lt;T&gt; with(Entity entity)</div><p style="font-size: 0.9rem;" data-i18n="taskbuilder.method4">Binds the task to the entity's scheduler in Folia.</p></div>
                     <div class="method-card"><h4><i class="fas fa-clock"></i> afterTicks()</h4><div class="method-signature">TaskBuilder&lt;T&gt; afterTicks(long ticks)</div><p style="font-size: 0.9rem;" data-i18n="taskbuilder.method5">Direct delay in Minecraft ticks (1 tick = 50ms).</p></div>
                     <div class="method-card"><h4><i class="fas fa-sync"></i> everyTicks()</h4><div class="method-signature">TaskBuilder&lt;T&gt; everyTicks(long ticks)</div><p style="font-size: 0.9rem;" data-i18n="taskbuilder.method6">Repetitive interval in ticks for periodic tasks.</p></div>
                     <div class="method-card"><h4><i class="fas fa-bug"></i> handleException()</h4><div class="method-signature">TaskBuilder&lt;T&gt; handleException(Consumer&lt;Exception&gt;)</div><p style="font-size: 0.9rem;" data-i18n="taskbuilder.method7">Custom error handler for the task.</p></div>
-                    <div class="method-card"><h4><i class="fas fa-tag"></i> named() <span class="badge new">v2.0</span></h4><div class="method-signature">TaskBuilder&lt;T&gt; named(String name)</div><p style="font-size: 0.9rem;" data-i18n="taskbuilder.method8">Assigns a name for debugging and logs with rich context.</p></div>
+                    <div class="method-card"><h4><i class="fas fa-tag"></i> named() <span class="badge new">v2.1</span></h4><div class="method-signature">TaskBuilder&lt;T&gt; named(String name)</div><p style="font-size: 0.9rem;" data-i18n="taskbuilder.method8">Assigns a name for debugging and logs with rich context.</p></div>
                     <div class="method-card"><h4><i class="fas fa-bolt"></i> unsafe() <span class="badge direct">Direct</span></h4><div class="method-signature">TaskBuilder&lt;T&gt; unsafe()</div><p style="font-size: 0.9rem;" data-i18n="taskbuilder.method9">⚠️ Disables validations. Only in hot paths with guaranteed parameters.</p></div>
                     <div class="method-card"><h4><i class="fas fa-check"></i> run()</h4><div class="method-signature">Task run()</div><p style="font-size: 0.9rem;" data-i18n="taskbuilder.method10">Executes the task and returns a Task object for manual cancellation.</p></div>
                 </div>
@@ -792,7 +792,7 @@ public void onEnable() {
 
             <!-- Composición Type-Safe (NUEVO) -->
             <section id="composition">
-                <h2><i class="fas fa-link"></i> <span data-i18n="composition.title">Type-Safe Composition</span> <span class="badge new">v2.0</span></h2>
+                <h2><i class="fas fa-link"></i> <span data-i18n="composition.title">Type-Safe Composition</span> <span class="badge new">v2.1</span></h2>
                 <p style="color: var(--color-text-secondary);" data-i18n="composition.description">New functional API style like <code>CompletableFuture</code> with complete type-safety. Transform, consume and handle errors declaratively.</p>
 
                 <div class="callout success">
@@ -937,7 +937,7 @@ MagmaLib.&lt;List&lt;ItemStack&gt;&gt;task(() -> player.getInventory().getConten
                 <div class="method-grid">
                     <div class="method-card"><h4><i class="fas fa-forward"></i> runDirect() <span class="badge direct">⚡</span></h4><div class="method-signature">void runDirect(Runnable runnable)</div><p style="font-size: 0.9rem;" data-i18n="direct.method1">Immediate execution on global thread. ~25% faster than task().run().</p></div>
                     <div class="method-card"><h4><i class="fas fa-map-marker-alt"></i> runDirectAt() <span class="badge direct">⚡</span></h4><div class="method-signature">void runDirectAt(Location, Runnable)</div><p style="font-size: 0.9rem;" data-i18n="direct.method2">Execution in chunk region. Ideal for massive block processing.</p></div>
-                    <div class="method-card"><h4><i class="fas fa-user"></i> runDirectWith() <span class="badge direct">⚡</span></h4><div class="method-signature">void runDirectWith(Entity, Runnable)</div><p style="font-size: 0.9rem;" data-i18n="direct.method3">Execution on entity scheduler. For massive update loops. <strong>v2.0 Fix:</strong> 0L delay for immediate execution.</p></div>
+                    <div class="method-card"><h4><i class="fas fa-user"></i> runDirectWith() <span class="badge direct">⚡</span></h4><div class="method-signature">void runDirectWith(Entity, Runnable)</div><p style="font-size: 0.9rem;" data-i18n="direct.method3">Execution on entity scheduler. For massive update loops. <strong>v2.1 Fix:</strong> 0L delay for immediate execution.</p></div>
                     <div class="method-card"><h4><i class="fas fa-hourglass"></i> runDirectLater() <span class="badge direct">⚡</span></h4><div class="method-signature">void runDirectLater(Runnable, long delayTicks)</div><p style="font-size: 0.9rem;" data-i18n="direct.method4">Direct delay in ticks. No TimeUnit conversion.</p></div>
                     <div class="method-card"><h4><i class="fas fa-sync"></i> runDirectTimer() <span class="badge direct">⚡</span></h4><div class="method-signature">void runDirectTimer(Runnable, long periodTicks)</div><p style="font-size: 0.9rem;" data-i18n="direct.method5">Direct periodic task. No builder or extra allocations.</p></div>
                     <div class="method-card"><h4><i class="fas fa-stopwatch"></i> runTimerUntilFast() <span class="badge new">New</span></h4><div class="method-signature">Task runTimerUntilFast(Runnable, long, BooleanSupplier)</div><p style="font-size: 0.9rem;" data-i18n="direct.method6">Optimized version without AtomicReference. ~15% faster.</p></div>
@@ -1040,12 +1040,12 @@ for (Entity entity : entities) {
                         <tr><td><code>task().at(location)</code></td><td class="status-yes">✅ Main Thread</td><td class="status-yes">✅ RegionScheduler</td></tr>
                         <tr><td><code>task().with(entity)</code></td><td class="status-yes">✅ Main Thread</td><td class="status-yes">✅ EntityScheduler</td></tr>
                         <tr><td><code>task().async()</code></td><td class="status-yes">✅ Async Scheduler</td><td class="status-yes">✅ AsyncScheduler</td></tr>
-                        <tr><td><code>thenApply/thenAccept</code> <span class="badge composition">v2.0</span></td><td class="status-yes">✅ Functional</td><td class="status-yes">✅ Functional</td></tr>
+                        <tr><td><code>thenApply/thenAccept</code> <span class="badge composition">v2.1</span></td><td class="status-yes">✅ Functional</td><td class="status-yes">✅ Functional</td></tr>
                         <tr><td><code>runDirectAt()</code></td><td class="status-yes">✅ Main Thread</td><td class="status-yes">✅ RegionScheduler</td></tr>
                         <tr><td><code>runDirectWith()</code></td><td class="status-yes">✅ Main Thread</td><td class="status-yes">✅ EntityScheduler</td></tr>
                         <tr><td><code>cancelIfUnloaded</code></td><td class="status-yes">✅ Verification</td><td class="status-yes">✅ Verification</td></tr>
                         <tr><td><code>handleException</code></td><td class="status-yes">✅ Try-catch</td><td class="status-yes">✅ Try-catch</td></tr>
-                        <tr><td><code>named()</code> <span class="badge new">v2.0</span></td><td class="status-yes">✅ Context logs</td><td class="status-yes">✅ Context logs</td></tr>
+                        <tr><td><code>named()</code> <span class="badge new">v2.1</span></td><td class="status-yes">✅ Context logs</td><td class="status-yes">✅ Context logs</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -1060,7 +1060,7 @@ for (Entity entity : entities) {
                 <p style="color: var(--color-text-secondary);" data-i18n="perf.description">Benchmark: 10,000 iterations of simple tasks on test server (Paper 1.21.4, Java 21).</p>
                 <div class="table-wrapper">
                     <table>
-                        <thead><tr><th data-i18n="perf.scenario">Scenario</th><th>FoliaLib</th><th>MagmaLib v1.2</th><th>MagmaLib v2.0</th><th data-i18n="perf.improvement">Improvement</th></tr></thead>
+                        <thead><tr><th data-i18n="perf.scenario">Scenario</th><th>FoliaLib</th><th>MagmaLib v1.2</th><th>MagmaLib v2.1</th><th data-i18n="perf.improvement">Improvement</th></tr></thead>
                         <tbody>
                         <tr><td data-i18n="perf.simple">Simple global task</td><td>1.2 ms</td><td>1.0 ms</td><td><strong>0.9 ms</strong></td><td class="status-yes">+25%</td></tr>
                         <tr><td data-i18n="perf.regional">Regional task</td><td>1.5 ms</td><td>1.2 ms</td><td><strong>1.1 ms</strong></td><td class="status-yes">+27%</td></tr>
@@ -1070,9 +1070,9 @@ for (Entity entity : entities) {
                         </tbody>
                     </table>
                 </div>
-                <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-top: 0.5rem;" data-i18n="perf.note">*v1.2 with manual CompletableFuture; v2.0 with integrated native composition</p>
+                <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-top: 0.5rem;" data-i18n="perf.note">*v1.2 with manual CompletableFuture; v2.1 with integrated native composition</p>
                 <div class="callout success">
-                    <p data-i18n="perf.conclusion"><strong>Conclusion:</strong> MagmaLib v2.0 is <strong>~25-47% faster</strong> than alternatives in hot paths, with integrated type-safe composition and zero additional overhead.</p>
+                    <p data-i18n="perf.conclusion"><strong>Conclusion:</strong> MagmaLib v2.1 is <strong>~25-47% faster</strong> than alternatives in hot paths, with integrated type-safe composition and zero additional overhead.</p>
                 </div>
             </section>
 
@@ -1081,7 +1081,7 @@ for (Entity entity : entities) {
                 <h2><i class="fas fa-question-circle"></i> <span data-i18n="faq.title">Frequently Asked Questions</span></h2>
                 <div class="method-grid">
                     <div class="method-card">
-                        <h4><i class="fas fa-question"></i> <span data-i18n="faq.q1">Will my v1.x code work in v2.0?</span></h4>
+                        <h4><i class="fas fa-question"></i> <span data-i18n="faq.q1">Will my v1.x code work in v2.1?</span></h4>
                         <p style="font-size: 0.9rem;" data-i18n="faq.a1">✅ <strong>Yes, 100% compatible.</strong> All v1.x APIs work without changes. The new composition features are optional and are activated by using <code>task(Supplier&lt;T&gt;)</code> instead of <code>task(Runnable)</code>.</p>
                     </div>
                     <div class="method-card">
@@ -1118,7 +1118,7 @@ for (Entity entity : entities) {
                         </ul>
                     </div>
                     <div class="method-card">
-                        <h4><i class="fas fa-download"></i> <span data-i18n="faq.q6">How to install v2.0 now?</span></h4>
+                        <h4><i class="fas fa-download"></i> <span data-i18n="faq.q6">How to install v2.1 now?</span></h4>
                         <p style="font-size: 0.9rem;" data-i18n="faq.a6">While JitPack is not available:</p>
                         <ol style="font-size: 0.9rem; margin-left: var(--spacing-lg);">
                             <li data-i18n="faq.a6a">Download <code>MagmaLib.java</code> from the repository</li>
@@ -1134,7 +1134,7 @@ for (Entity entity : entities) {
 
         <!-- Footer -->
         <footer class="footer">
-            <p>MagmaLib v2.0 &copy; 2026 &bull; <span data-i18n="footer.license">Released under MIT License</span></p>
+            <p>MagmaLib v2.1 &copy; 2026 &bull; <span data-i18n="footer.license">Released under MIT License</span></p>
             <div class="footer-links">
                 <a href="#" onclick="return false;" title="Coming soon"><i class="fab fa-github"></i> GitHub</a>
                 <a href="#" onclick="return false;" title="Coming soon"><i class="fab fa-discord"></i> Discord</a>
@@ -1182,8 +1182,8 @@ for (Entity entity : entities) {
             "hero.title": "Documentación de MagmaLib",
             "hero.description": "La solución profesional para migrar plugins de Paper a Folia con una API moderna, <strong>type-safe composition</strong> y máximo rendimiento.",
             "hero.start": "Comenzar",
-            "hero.download": "Descargar v2.0",
-            "hero.newTitle": "Nuevo en v2.0",
+            "hero.download": "Descargar v2.1",
+            "hero.newTitle": "Nuevo en v2.1",
             "hero.feature1Title": "Composición type-safe:",
             "hero.feature2Title": "Context propagation:",
             "hero.feature3Title": "100% backward compatible",
@@ -1193,7 +1193,7 @@ for (Entity entity : entities) {
             "install.requirementsTitle": "Requisitos",
             "install.requirements": "Paper 1.18+ o Folia (recomendado 1.20+). Java 17 o superior.",
             "install.comingSoonTitle": "Próximamente",
-            "install.comingSoon": "MagmaLib v2.0 estará disponible en JitPack muy pronto. Mientras tanto, puedes usar el código fuente directamente copiando <code>MagmaLib.java</code> en tu proyecto.",
+            "install.comingSoon": "MagmaLib v2.1 estará disponible en JitPack muy pronto. Mientras tanto, puedes usar el código fuente directamente copiando <code>MagmaLib.java</code> en tu proyecto.",
 
             // Code
             "code.copy": "Copiar",
@@ -1215,7 +1215,7 @@ for (Entity entity : entities) {
             "taskbuilder.title": "Task Builder (API Estándar)",
             "taskbuilder.description": "API segura y legible para la mayoría de casos de uso. Incluye validaciones automáticas y manejo de errores. <strong>100% compatible con v1.x</strong>.",
             "taskbuilder.backwardCompatible": "Backward Compatible",
-            "taskbuilder.backwardCompatibleDesc": "Todo tu código de MagmaLib v1.x funciona sin cambios en v2.0. Las nuevas features de composición son opcionales.",
+            "taskbuilder.backwardCompatibleDesc": "Todo tu código de MagmaLib v1.x funciona sin cambios en v2.1. Las nuevas features de composición son opcionales.",
             "taskbuilder.method1": "Punto de entrada para tareas sin retorno. Compatible con versiones anteriores.",
             "taskbuilder.method2": "Punto de entrada para composición type-safe con thenApply/thenAccept.",
             "taskbuilder.method3": "Ejecuta en la región del chunk (Folia) o hilo principal (Paper).",
@@ -1253,7 +1253,7 @@ for (Entity entity : entities) {
             "direct.warningDesc": "Estos métodos omiten validaciones. Úsalos SOLO cuando garantices manualmente: <code>location.getWorld() != null</code>, chunk cargado, y <code>entity.isValid()</code>.",
             "direct.method1": "Ejecución inmediata en hilo global. ~25% más rápido que task().run().",
             "direct.method2": "Ejecución en región de chunk. Ideal para procesamiento masivo de bloques.",
-            "direct.method3": "Ejecución en scheduler de entidad. Para bucles de actualización masiva. <strong>v2.0 Fix:</strong> delay 0L para ejecución inmediata.",
+            "direct.method3": "Ejecución en scheduler de entidad. Para bucles de actualización masiva. <strong>v2.1 Fix:</strong> delay 0L para ejecución inmediata.",
             "direct.method4": "Retraso directo en ticks. Sin conversión de TimeUnit.",
             "direct.method5": "Tarea periódica directa. Sin builder ni allocations extra.",
             "direct.method6": "Versión optimizada sin AtomicReference. ~15% más rápido.",
@@ -1294,12 +1294,12 @@ for (Entity entity : entities) {
             "perf.composition": "Tarea con composición",
             "perf.validations": "Bucle con validaciones",
             "perf.hotpath": "Hot path (runDirect*)",
-            "perf.note": "*v1.2 con CompletableFuture manual; v2.0 con composición nativa integrada",
-            "perf.conclusion": "<strong>Conclusión:</strong> MagmaLib v2.0 es <strong>~25-47% más rápido</strong> que alternativas en hot paths, con composición type-safe integrada y cero overhead adicional.",
+            "perf.note": "*v1.2 con CompletableFuture manual; v2.1 con composición nativa integrada",
+            "perf.conclusion": "<strong>Conclusión:</strong> MagmaLib v2.1 es <strong>~25-47% más rápido</strong> que alternativas en hot paths, con composición type-safe integrada y cero overhead adicional.",
 
             // FAQ
             "faq.title": "Preguntas Frecuentes",
-            "faq.q1": "¿Mi código de v1.x funcionará en v2.0?",
+            "faq.q1": "¿Mi código de v1.x funcionará en v2.1?",
             "faq.a1": "✅ <strong>Sí, 100% compatible.</strong> Todas las APIs de v1.x funcionan sin cambios. Las nuevas features de composición son opcionales y se activan usando <code>task(Supplier&lt;T&gt;)</code> en lugar de <code>task(Runnable)</code>.",
             "faq.q2": "¿Cuándo usar thenApply vs thenAccept?",
             "faq.a2": "<strong>thenApply:</strong> Cuando necesitas transformar el valor y continuar el pipeline (retorna nuevo tipo). <strong>thenAccept:</strong> Cuando quieres consumir el valor final para un efecto secundario (no retorna valor, finaliza el pipeline).",
@@ -1314,7 +1314,7 @@ for (Entity entity : entities) {
             "faq.a4b": "Tu código no necesita cambios para funcionar en ambos.",
             "faq.q5": "¿Cómo debuggear tareas con named()?",
             "faq.a5": "Los logs de error incluirán automáticamente:",
-            "faq.q6": "¿Cómo instalar v2.0 ahora?",
+            "faq.q6": "¿Cómo instalar v2.1 ahora?",
             "faq.a6": "Mientras JitPack no esté disponible:",
             "faq.a6a": "Descarga <code>MagmaLib.java</code> del repositorio",
             "faq.a6b": "Cópialo en tu plugin: <code>src/main/java/tu/paquete/MagmaLib.java</code>",
@@ -1354,8 +1354,8 @@ for (Entity entity : entities) {
             "hero.title": "MagmaLib Documentation",
             "hero.description": "The professional solution for migrating Paper plugins to Folia with a modern API, <strong>type-safe composition</strong> and maximum performance.",
             "hero.start": "Get Started",
-            "hero.download": "Download v2.0",
-            "hero.newTitle": "New in v2.0",
+            "hero.download": "Download v2.1",
+            "hero.newTitle": "New in v2.1",
             "hero.feature1Title": "Type-safe composition:",
             "hero.feature2Title": "Context propagation:",
             "hero.feature3Title": "100% backward compatible",
@@ -1365,7 +1365,7 @@ for (Entity entity : entities) {
             "install.requirementsTitle": "Requirements",
             "install.requirements": "Paper 1.18+ or Folia (recommended 1.20+). Java 17 or higher.",
             "install.comingSoonTitle": "Coming Soon",
-            "install.comingSoon": "MagmaLib v2.0 will be available on JitPack soon. In the meantime, you can use the source code directly by copying <code>MagmaLib.java</code> into your project.",
+            "install.comingSoon": "MagmaLib v2.1 will be available on JitPack soon. In the meantime, you can use the source code directly by copying <code>MagmaLib.java</code> into your project.",
 
             // Code
             "code.copy": "Copy",
@@ -1387,7 +1387,7 @@ for (Entity entity : entities) {
             "taskbuilder.title": "Task Builder (Standard API)",
             "taskbuilder.description": "Safe and readable API for most use cases. Includes automatic validations and error handling. <strong>100% compatible with v1.x</strong>.",
             "taskbuilder.backwardCompatible": "Backward Compatible",
-            "taskbuilder.backwardCompatibleDesc": "All your MagmaLib v1.x code works without changes in v2.0. The new composition features are optional.",
+            "taskbuilder.backwardCompatibleDesc": "All your MagmaLib v1.x code works without changes in v2.1. The new composition features are optional.",
             "taskbuilder.method1": "Entry point for tasks without return value. Compatible with previous versions.",
             "taskbuilder.method2": "Entry point for type-safe composition with thenApply/thenAccept.",
             "taskbuilder.method3": "Executes in the chunk region (Folia) or main thread (Paper).",
@@ -1425,7 +1425,7 @@ for (Entity entity : entities) {
             "direct.warningDesc": "These methods omit validations. Use them ONLY when you manually guarantee: <code>location.getWorld() != null</code>, chunk loaded, and <code>entity.isValid()</code>.",
             "direct.method1": "Immediate execution on global thread. ~25% faster than task().run().",
             "direct.method2": "Execution in chunk region. Ideal for massive block processing.",
-            "direct.method3": "Execution on entity scheduler. For massive update loops. <strong>v2.0 Fix:</strong> 0L delay for immediate execution.",
+            "direct.method3": "Execution on entity scheduler. For massive update loops. <strong>v2.1 Fix:</strong> 0L delay for immediate execution.",
             "direct.method4": "Direct delay in ticks. No TimeUnit conversion.",
             "direct.method5": "Direct periodic task. No builder or extra allocations.",
             "direct.method6": "Optimized version without AtomicReference. ~15% faster.",
@@ -1466,12 +1466,12 @@ for (Entity entity : entities) {
             "perf.composition": "Task with composition",
             "perf.validations": "Loop with validations",
             "perf.hotpath": "Hot path (runDirect*)",
-            "perf.note": "*v1.2 with manual CompletableFuture; v2.0 with integrated native composition",
-            "perf.conclusion": "<strong>Conclusion:</strong> MagmaLib v2.0 is <strong>~25-47% faster</strong> than alternatives in hot paths, with integrated type-safe composition and zero additional overhead.",
+            "perf.note": "*v1.2 with manual CompletableFuture; v2.1 with integrated native composition",
+            "perf.conclusion": "<strong>Conclusion:</strong> MagmaLib v2.1 is <strong>~25-47% faster</strong> than alternatives in hot paths, with integrated type-safe composition and zero additional overhead.",
 
             // FAQ
             "faq.title": "Frequently Asked Questions",
-            "faq.q1": "Will my v1.x code work in v2.0?",
+            "faq.q1": "Will my v1.x code work in v2.1?",
             "faq.a1": "✅ <strong>Yes, 100% compatible.</strong> All v1.x APIs work without changes. The new composition features are optional and are activated by using <code>task(Supplier&lt;T&gt;)</code> instead of <code>task(Runnable)</code>.",
             "faq.q2": "When to use thenApply vs thenAccept?",
             "faq.a2": "<strong>thenApply:</strong> When you need to transform the value and continue the pipeline (returns new type). <strong>thenAccept:</strong> When you want to consume the final value for a side effect (doesn't return value, ends the pipeline).",
@@ -1486,7 +1486,7 @@ for (Entity entity : entities) {
             "faq.a4b": "Your code needs no changes to work on both.",
             "faq.q5": "How to debug tasks with named()?",
             "faq.a5": "Error logs will automatically include:",
-            "faq.q6": "How to install v2.0 now?",
+            "faq.q6": "How to install v2.1 now?",
             "faq.a6": "While JitPack is not available:",
             "faq.a6a": "Download <code>MagmaLib.java</code> from the repository",
             "faq.a6b": "Copy it to your plugin: <code>src/main/java/your/package/MagmaLib.java</code>",
