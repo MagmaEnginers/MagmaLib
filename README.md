@@ -5,6 +5,7 @@
 [![Java](https://img.shields.io/badge/Java-21%2B-orange?style=flat-square)](https://adoptium.net)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-2.1.0-blue?style=flat-square)](https://github.com/MagmaEnginers/MagmaLib/releases)
+[![JitPack](https://jitpack.io/v/MagmaEnginers/MagmaLib.svg)](https://jitpack.io/#MagmaEnginers/MagmaLib)
 
 > **MagmaLib** is a modern scheduling API for **Paper** and **Folia** plugins. It provides type-safe composition, maximum performance, and painless migration from Bukkit Scheduler or FoliaLib.
 
@@ -39,9 +40,8 @@
 ```xml
 <repositories>
     <repository>
-        <id>github</id>
-        <name>MagmaLib</name>
-        <url>https://maven.pkg.github.com/MagmaEnginers/MagmaLib</url>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
     </repository>
 </repositories>
 
