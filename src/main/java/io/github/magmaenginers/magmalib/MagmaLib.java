@@ -13,35 +13,34 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.*;
 
 /**
- * MagmaLib - API moderna para scheduling compatible con Paper y Folia
+ * Modern, type-safe scheduling API providing an abstraction layer for both Paper and Folia.
  * <p>
- * <b>Características principales:</b>
+ * <b>Main Features:</b>
  * <ul>
- *   <li>Task Builder fluent con generics type-safe para composición funcional</li>
- *   <li>API directa de alto rendimiento para hot paths (zero-allocation)</li>
- *   <li>Detección automática de Folia/Paper con caché de reflexión</li>
- *   <li>Manejo seguro de chunks y entidades con opción {@code unsafe} para máximo rendimiento</li>
- *   <li>Composición estilo CompletableFuture: {@code thenApply}, {@code thenAccept}, {@code exceptionally}</li>
- *   <li>Propagación de contexto para debugging: stack trace de creación, plugin, ubicación</li>
- *   <li>Utilidades avanzadas: {@code runTimerUntil}, {@code runWithRetry}, {@code forAllPlayers}</li>
+ * <li>Fluent Task Builder with type-safe generic composition.</li>
+ * <li>Zero-allocation direct API designed for hot paths.</li>
+ * <li>Automatic Folia/Paper detection backed by a fast reflection cache.</li>
+ * <li>Safe chunk and entity handling with an {@code unsafe()} bypass for maximum performance.</li>
+ * <li>CompletableFuture-style task chaining: {@code thenApply}, {@code thenAccept}, {@code exceptionally}.</li>
+ * <li>Advanced flow control utilities: {@code runTimerUntil}, {@code runWithRetry}, {@code forAllPlayers}.</li>
  * </ul>
  *
- * <p><b>Ejemplo de uso con composición type-safe:</b>
+ * <p><b>Example of type-safe functional composition:</b></p>
  * <pre>{@code
  * MagmaLib.<Integer>task(() -> calculateScore(player))
- *     .at(player.getLocation())
- *     .afterTicks(10)
- *     .thenApply(score -> score > 100 ? "¡Excelente!" : "Sigue intentando")
- *     .thenAccept(message -> player.sendMessage(message))
- *     .exceptionally(e -> {
- *         plugin.getLogger().warning("Error calculando score: " + safeMessage(e));
- *         return "Error";
- *     })
- *     .run();
+ * .at(player.getLocation())
+ * .afterTicks(10)
+ * .thenApply(score -> score > 100 ? "Excellent!" : "Keep trying!")
+ * .thenAccept(message -> player.sendMessage(message))
+ * .exceptionally(e -> {
+ * plugin.getLogger().warning("Failed to calculate score: " + safeMessage(e));
+ * return "Error";
+ * })
+ * .run();
  * }</pre>
  *
  * @author Piratemajo
- * @version 2.0.1
+ * @version 2.1.1
  * @see <a href="https://github.com/MagmaEnginers/MagmaLib">GitHub Repository</a>
  */
 public class MagmaLib {
@@ -50,14 +49,13 @@ public class MagmaLib {
     private static Boolean isFoliaCache = null;
 
     /**
-     * Inicializa MagmaLib con tu plugin principal.
+     * Initializes MagmaLib with your main plugin instance.
      * <p>
-     * Este método debe invocarse en {@link JavaPlugin#onEnable()} antes de usar
-     * cualquier otra funcionalidad de la librería. Detecta automáticamente si el
-     * servidor ejecuta Folia mediante reflexión y cachea el resultado.
+     * This method must be called within your {@link JavaPlugin#onEnable()} before utilizing
+     * any other library feature. It detects Folia via reflection and caches the result.
      *
-     * @param plugin la instancia principal del plugin
-     * @throws IllegalStateException si plugin es null
+     * @param plugin The main plugin instance.
+     * @throws IllegalStateException If the plugin instance is null.
      */
     public static void init(Plugin plugin) {
         if (plugin == null) {
@@ -73,12 +71,12 @@ public class MagmaLib {
     }
 
     /**
-     * Determina si el servidor actual ejecuta Folia.
+     * Determines whether the current server software is running on Folia.
      * <p>
-     * El resultado se cachea tras la primera llamada para evitar reflexión repetida.
+     * The result is safely cached after the first check to completely avoid overhead.
      *
-     * @return {@code true} si es Folia, {@code false} si es Paper/Spigot
-     * @throws IllegalStateException si no se ha llamado {@link #init(Plugin)}
+     * @return {@code true} if running on Folia, {@code false} if Paper/Spigot.
+     * @throws IllegalStateException If {@link #init(Plugin)} hasn't been called yet.
      */
     public static boolean isFolia() {
         if (isFoliaCache == null) {
@@ -96,9 +94,9 @@ public class MagmaLib {
     }
 
     /**
-     * Obtiene la instancia del plugin inicializado.
+     * Gets the currently registered plugin instance.
      *
-     * @return el {@link Plugin} registrado, o {@code null} si no inicializado
+     * @return The registered {@link Plugin}, or {@code null} if uninitialized.
      */
     public static Plugin getPlugin() {
         return plugin;
@@ -107,12 +105,12 @@ public class MagmaLib {
     // ==================== UTILITIES ====================
 
     /**
-     * Obtiene un mensaje de error null-safe para logging.
+     * Gets a null-safe error message suitable for logging purposes.
      * <p>
-     * Si {@code e.getMessage()} es null, retorna el nombre de la excepción.
+     * If {@code e.getMessage()} is null or empty, it returns the Exception's simple class name.
      *
-     * @param e la excepción a procesar
-     * @return mensaje descriptivo nunca null
+     * @param e The exception to process.
+     * @return A descriptive string that is guaranteed to never be null.
      */
     public static String safeMessage(Throwable e) {
         if (e == null) return "Unknown error";
@@ -120,53 +118,43 @@ public class MagmaLib {
         return (msg != null && !msg.isEmpty()) ? msg : e.getClass().getSimpleName();
     }
 
-    // ==================== TASK BUILDER - RUNNABLE (Backward Compatible) ====================
+    // ==================== TASK BUILDER ENTRY POINTS ====================
 
     /**
-     * Crea un nuevo {@link TaskBuilder} para tareas sin retorno de valor.
+     * Creates a new {@link TaskBuilder} for tasks that do not return a value.
      * <p>
-     * Método compatible con versiones anteriores. Para composición type-safe,
-     * usa {@link #task(Supplier)}.
+     * Backward-compatible endpoint. For type-safe functional chaining, use {@link #task(Supplier)} instead.
      *
-     * @param runnable el código a ejecutar
-     * @return un nuevo {@link TaskBuilder} para configuración adicional
+     * @param runnable The code block to execute.
+     * @return A new {@link TaskBuilder} instance for further configuration.
      */
     public static TaskBuilder<Void> task(Runnable runnable) {
-        return new TaskBuilder<Void>(runnable);
+        return new TaskBuilder<>(runnable);
     }
 
-    // ==================== TASK BUILDER - GENERIC (Type-Safe Composition) ====================
-
     /**
-     * Crea un nuevo {@link TaskBuilder} genérico para tareas con retorno de valor.
+     * Creates a new generic {@link TaskBuilder} for tasks that return a computed value.
      * <p>
-     * Permite composición funcional tipo {@link CompletableFuture} con métodos:
+     * This supports functional pipeline styling similar to {@link CompletableFuture} via
      * {@link TaskBuilder#thenApply(Function)}, {@link TaskBuilder#thenAccept(Consumer)},
-     * y {@link TaskBuilder#exceptionally(Function)}.
+     * and {@link TaskBuilder#exceptionally(Function)}.
      *
-     * @param supplier el proveedor del valor a calcular
-     * @param <T> el tipo del valor retornado
-     * @return un nuevo {@link TaskBuilder<T>} para composición type-safe
-     * @see TaskBuilder#thenApply(Function)
-     * @see TaskBuilder#thenAccept(Consumer)
+     * @param supplier The value provider/calculator.
+     * @param <T> The type of the value returned by this provider.
+     * @return A new {@link TaskBuilder} instance supporting type-safe composition.
      */
     public static <T> TaskBuilder<T> task(Supplier<T> supplier) {
         return new TaskBuilder<>(supplier);
     }
 
+    // ==================== TASK BUILDER IMPLEMENTATION ====================
+
     /**
-     * Builder fluent para configurar tareas con opciones avanzadas.
-     * <p>
-     * Soporta dos modos:
-     * <ul>
-     *   <li>{@code TaskBuilder} (Runnable): tareas sin retorno, compatible con v1.x</li>
-     *   <li>{@code TaskBuilder<T>} (Supplier<T>): tareas con composición type-safe</li>
-     * </ul>
+     * Fluent builder to configure and schedule tasks with multi-platform awareness.
      *
-     * @param <T> tipo del valor retornado (Void para Runnable)
+     * @param <T> The return type of the task (Void for Runnable actions).
      */
     public static class TaskBuilder<T> {
-        // Configuración compartida
         private Location location;
         private Entity entity;
         private long delay = -1;
@@ -176,38 +164,30 @@ public class MagmaLib {
         private boolean unsafe = false;
         private BooleanSupplier cancelCondition;
         private Consumer<Throwable> exceptionHandler;
-        private String taskName; // Para debugging/contexto
+        private String taskName;
 
-        // Modo Runnable (backward compatible)
         private final Runnable runnable;
-        private Supplier<T> supplier;
+        private final Supplier<T> supplier;
 
-        // Composición funcional (solo para Supplier mode)
         private Function<T, ?> thenApply;
         private Consumer<T> thenAccept;
         private Function<Throwable, T> exceptionally;
 
-        // ============ CONSTRUCTORES ============
-
-        /** Constructor para modo Runnable (backward compatible) */
         private TaskBuilder(Runnable runnable) {
             this.runnable = runnable;
             this.supplier = null;
         }
 
-        /** Constructor para modo Supplier (type-safe composition) */
         private TaskBuilder(Supplier<T> supplier) {
             this.supplier = supplier;
             this.runnable = null;
         }
 
-        // ============ CONFIGURACIÓN (común a ambos modos) ============
-
         /**
-         * Asocia la tarea a una ubicación para routing regional en Folia.
+         * Binds the task to a specific location for regional routing on Folia.
          *
-         * @param location ubicación para routing
-         * @return este builder para encadenamiento
+         * @param location The target location.
+         * @return This builder instance for chaining.
          */
         public TaskBuilder<T> at(Location location) {
             this.location = location;
@@ -215,10 +195,10 @@ public class MagmaLib {
         }
 
         /**
-         * Asocia la tarea a una entidad para scheduling vinculado en Folia.
+         * Binds the task to an entity's lifecycle and regional thread scheduler on Folia.
          *
-         * @param entity entidad para vincular
-         * @return este builder para encadenamiento
+         * @param entity The target entity.
+         * @return This builder instance for chaining.
          */
         public TaskBuilder<T> with(Entity entity) {
             this.entity = entity;
@@ -226,11 +206,11 @@ public class MagmaLib {
         }
 
         /**
-         * Establece retraso inicial antes de la primera ejecución.
+         * Sets an initial delay before the task's first execution.
          *
-         * @param delay cantidad de retraso
-         * @param unit unidad de tiempo
-         * @return este builder para encadenamiento
+         * @param delay The duration of the delay.
+         * @param unit The time unit of the delay.
+         * @return This builder instance for chaining.
          */
         public TaskBuilder<T> after(long delay, TimeUnit unit) {
             this.delay = unit.toMillis(delay);
@@ -238,10 +218,10 @@ public class MagmaLib {
         }
 
         /**
-         * Establece retraso inicial en ticks de Minecraft (1 tick = 50ms).
+         * Sets an initial delay in Minecraft Server Ticks (1 tick = 50ms).
          *
-         * @param ticks retraso en ticks
-         * @return este builder para encadenamiento
+         * @param ticks The amount of ticks to wait.
+         * @return This builder instance for chaining.
          */
         public TaskBuilder<T> afterTicks(long ticks) {
             this.delay = ticks * 50L;
@@ -249,11 +229,11 @@ public class MagmaLib {
         }
 
         /**
-         * Establece intervalo periódico entre ejecuciones.
+         * Sets a repeating interval period for the task.
          *
-         * @param period duración del intervalo
-         * @param unit unidad de tiempo
-         * @return este builder para encadenamiento
+         * @param period The duration of the interval.
+         * @param unit The time unit of the interval.
+         * @return This builder instance for chaining.
          */
         public TaskBuilder<T> every(long period, TimeUnit unit) {
             this.period = unit.toMillis(period);
@@ -261,10 +241,10 @@ public class MagmaLib {
         }
 
         /**
-         * Establece intervalo periódico en ticks de Minecraft.
+         * Sets a repeating interval period in Minecraft Server Ticks.
          *
-         * @param ticks intervalo en ticks
-         * @return este builder para encadenamiento
+         * @param ticks The amount of ticks between runs.
+         * @return This builder instance for chaining.
          */
         public TaskBuilder<T> everyTicks(long ticks) {
             this.period = ticks * 50L;
@@ -272,11 +252,11 @@ public class MagmaLib {
         }
 
         /**
-         * Configura la tarea para ejecutarse en hilo asíncrono.
+         * Flags the task to be run completely asynchronously.
          * <p>
-         * ⚠️ Las tareas asíncronas no pueden interactuar directamente con la API de Bukkit.
+         * ⚠️ Asynchronous tasks cannot interact safely with standard Bukkit API components.
          *
-         * @return este builder para encadenamiento
+         * @return This builder instance for chaining.
          */
         public TaskBuilder<T> async() {
             this.async = true;
@@ -284,10 +264,10 @@ public class MagmaLib {
         }
 
         /**
-         * Configura si cancelar automáticamente si el chunk no está cargado.
+         * Configures whether the task should automatically abort if target chunks are unloaded.
          *
-         * @param cancel {@code true} para cancelar si no cargado (por defecto)
-         * @return este builder para encadenamiento
+         * @param cancel {@code true} to automatically drop the task if unloaded (default).
+         * @return This builder instance for chaining.
          */
         public TaskBuilder<T> cancelIfUnloaded(boolean cancel) {
             this.cancelIfUnloaded = cancel;
@@ -295,16 +275,16 @@ public class MagmaLib {
         }
 
         /**
-         * ⚠️ <b>MODO ALTO RENDIMIENTO:</b> Desactiva validaciones de seguridad.
+         * ⚠️ <b>HIGH PERFORMANCE BYPASS:</b> Completely disables structural safety checks.
          * <p>
-         * Úsalo SOLO en hot paths donde garantices manualmente:
+         * Use this ONLY in high-frequency hot paths where you manually guarantee:
          * <ul>
-         *   <li>{@code location.getWorld() != null}</li>
-         *   <li>Chunk cargado: {@code world.isChunkLoaded(x, z)}</li>
-         *   <li>{@code entity.isValid() == true}</li>
+         * <li>{@code location.getWorld() != null}</li>
+         * <li>The chunk is actively loaded: {@code world.isChunkLoaded(x, z)}</li>
+         * <li>The target entity is valid: {@code entity.isValid() == true}</li>
          * </ul>
          *
-         * @return este builder para encadenamiento
+         * @return This builder instance for chaining.
          */
         public TaskBuilder<T> unsafe() {
             this.unsafe = true;
@@ -312,10 +292,10 @@ public class MagmaLib {
         }
 
         /**
-         * Establece condición dinámica para cancelar antes de cada ejecución.
+         * Defines a dynamic condition checked right before every execution to trigger cancellation.
          *
-         * @param condition proveedor que retorna {@code true} para cancelar
-         * @return este builder para encadenamiento
+         * @param condition A supplier returning {@code true} to cancel the task permanently.
+         * @return This builder instance for chaining.
          */
         public TaskBuilder<T> cancelIf(BooleanSupplier condition) {
             this.cancelCondition = condition;
@@ -323,12 +303,10 @@ public class MagmaLib {
         }
 
         /**
-         * Establece manejador personalizado para errores.
-         * <p>
-         * Acepta cualquier {@link Throwable}, incluyendo {@link Exception} y {@link Error}.
+         * Assigns a custom error handler to trap exceptions thrown during execution.
          *
-         * @param handler consumidor para procesar el error
-         * @return este builder para encadenamiento
+         * @param handler A consumer acting upon the caught exception.
+         * @return This builder instance for chaining.
          */
         public TaskBuilder<T> handleException(Consumer<Throwable> handler) {
             this.exceptionHandler = handler;
@@ -336,27 +314,25 @@ public class MagmaLib {
         }
 
         /**
-         * Asigna un nombre descriptivo para debugging y métricas.
+         * Assigns a custom identifier tag for debugging and logging profiles.
          *
-         * @param name nombre identificativo de la tarea
-         * @return este builder para encadenamiento
+         * @param name Descriptive name of the task.
+         * @return This builder instance for chaining.
          */
         public TaskBuilder<T> named(String name) {
             this.taskName = name;
             return this;
         }
 
-        // ============ COMPOSICIÓN FUNCIONAL (solo Supplier mode) ============
-
         /**
-         * Transforma el resultado de la tarea aplicando una función.
+         * Pipelines the result of the task into a mapping function.
          * <p>
-         * Equivalente a {@link CompletableFuture#thenApply(Function)}.
+         * Behaves exactly like {@link CompletableFuture#thenApply(Function)}.
          *
-         * @param mapper función para transformar el resultado
-         * @param <R> tipo del nuevo resultado
-         * @return este builder con tipo actualizado para encadenamiento
-         * @throws IllegalStateException si se usa con constructor Runnable
+         * @param mapper The function transforming the old type into a new one.
+         * @param <R> The new transformed data type.
+         * @return An updated TaskBuilder mapping the new return type.
+         * @throws IllegalStateException If used on a builder initialized with a Runnable.
          */
         @SuppressWarnings("unchecked")
         public <R> TaskBuilder<R> thenApply(Function<T, R> mapper) {
@@ -373,13 +349,13 @@ public class MagmaLib {
         }
 
         /**
-         * Consume el resultado de la tarea sin retornar valor.
+         * Consumes the final result of the pipeline without returning a value.
          * <p>
-         * Equivalente a {@link CompletableFuture#thenAccept(Consumer)}.
+         * Behaves exactly like {@link CompletableFuture#thenAccept(Consumer)}.
          *
-         * @param action consumidor para procesar el resultado
-         * @return este builder para encadenamiento
-         * @throws IllegalStateException si se usa con constructor Runnable
+         * @param action Consumer acting upon the computed result.
+         * @return This builder instance for chaining.
+         * @throws IllegalStateException If used on a builder initialized with a Runnable.
          */
         public TaskBuilder<T> thenAccept(Consumer<T> action) {
             if (supplier == null) {
@@ -398,13 +374,13 @@ public class MagmaLib {
         }
 
         /**
-         * Maneja excepciones proporcionando un valor de recuperación.
+         * Traps exceptions within the pipeline and recovers with a fallback value.
          * <p>
-         * Equivalente a {@link CompletableFuture#exceptionally(Function)}.
+         * Behaves exactly like {@link CompletableFuture#exceptionally(Function)}.
          *
-         * @param fallback función que retorna valor de recuperación ante error
-         * @return este builder para encadenamiento
-         * @throws IllegalStateException si se usa con constructor Runnable
+         * @param fallback A function returning a safe value upon failure.
+         * @return This builder instance for chaining.
+         * @throws IllegalStateException If used on a builder initialized with a Runnable.
          */
         public TaskBuilder<T> exceptionally(Function<Throwable, T> fallback) {
             if (supplier == null) {
@@ -414,32 +390,24 @@ public class MagmaLib {
             return this;
         }
 
-        // ============ EJECUCIÓN ============
-
         /**
-         * Programa y ejecuta la tarea con la configuración especificada.
+         * Finalizes configuration and schedules the task context across the target platform.
          *
-         * @return un {@link Task} para controlar la tarea (cancelar, verificar estado)
+         * @return A {@link Task} handle allowing manual lifecycle monitoring or cancellation.
          */
         public Task run() {
             Runnable executable = createExecutable();
-            TaskBuilder<Void> voidBuilder = new TaskBuilder<>(executable);
-            voidBuilder.location = this.location;
-            voidBuilder.entity = this.entity;
-            voidBuilder.delay = this.delay;
-            voidBuilder.period = this.period;
-            voidBuilder.async = this.async;
-            voidBuilder.cancelIfUnloaded = this.cancelIfUnloaded;
-            voidBuilder.unsafe = this.unsafe;
-            voidBuilder.cancelCondition = this.cancelCondition;
-            voidBuilder.exceptionHandler = this.exceptionHandler;
-            voidBuilder.taskName = this.taskName;
-            return voidBuilder.runInternal();
+            if (async) {
+                return runAsync(executable);
+            } else if (location != null) {
+                return runAtLocation(executable);
+            } else if (entity != null) {
+                return runWithEntity(executable);
+            } else {
+                return runGlobal(executable);
+            }
         }
 
-        /**
-         * Crea el Runnable ejecutable con composición y manejo de errores.
-         */
         @SuppressWarnings("unchecked")
         private Runnable createExecutable() {
             if (runnable != null) {
@@ -474,7 +442,7 @@ public class MagmaLib {
                             exceptionHandler.accept(e);
                         } else {
                             String context = taskName != null ? " ['" + taskName + "']" : "";
-                            plugin.getLogger().severe("Error en tarea MagmaLib" + context + ": " + safeMessage(e));
+                            plugin.getLogger().severe("Error in MagmaLib task" + context + ": " + safeMessage(e));
                             e.printStackTrace();
                         }
                     }
@@ -483,9 +451,6 @@ public class MagmaLib {
             return () -> {};
         }
 
-        /**
-         * Ejecuta un Runnable con manejo seguro de excepciones y condiciones.
-         */
         private void executeSafely(Runnable action) {
             try {
                 if (cancelCondition == null || !cancelCondition.getAsBoolean()) {
@@ -496,64 +461,33 @@ public class MagmaLib {
                     exceptionHandler.accept(e);
                 } else {
                     String context = taskName != null ? " ['" + taskName + "']" : "";
-                    plugin.getLogger().severe("Error en tarea MagmaLib" + context + ": " + safeMessage(e));
+                    plugin.getLogger().severe("Error in MagmaLib task" + context + ": " + safeMessage(e));
                     e.printStackTrace();
                 }
             }
         }
 
-        // ============ FOLIA-SAFE TICK CONVERSION ====================
-
-        /**
-         * Convierte milisegundos a ticks asegurando compatibilidad con Folia.
-         * <p>
-         * Para tareas periódicas en Folia, garantiza delay mínimo de 1 tick
-         * porque Folia rechaza delay <= 0 en runAtFixedRate.
-         *
-         * @param ms milisegundos a convertir
-         * @param isPeriodic true si es tarea periódica (every/period > 0)
-         * @param isDelay true si este valor es para delay (no period)
-         * @return ticks seguros para Folia
-         */
         private long toFoliaSafeTicks(long ms, boolean isPeriodic, boolean isDelay) {
             if (ms <= 0) {
-                // Folia requiere delay >= 1 tick para tareas periódicas
                 if (isFolia() && isPeriodic && isDelay) {
                     return 1;
                 }
                 return 0;
             }
             long ticks = ms / 50L;
-            // Asegurar mínimo 1 tick para delays en tareas periódicas de Folia
             if (isFolia() && isPeriodic && isDelay && ticks <= 0) {
                 return 1;
             }
             return Math.max(0, ticks);
         }
 
-        // ============ ROUTING INTERNO (lógica original corregida) ============
-
-        private Task runInternal() {
-            if (async) {
-                return runAsync();
-            } else if (location != null) {
-                return runAtLocation();
-            } else if (entity != null) {
-                return runWithEntity();
-            } else {
-                return runGlobal();
-            }
-        }
-
-        private Task runAsync() {
-            Runnable safeRunnable = () -> executeSafely(runnable);
-
+        private Task runAsync(Runnable safeRunnable) {
             if (isFolia()) {
                 AsyncScheduler scheduler = Bukkit.getAsyncScheduler();
                 if (period > 0) {
                     long safeDelay = toFoliaSafeTicks(delay > 0 ? delay : 0, true, true);
                     long safePeriod = toFoliaSafeTicks(period, true, false);
-                    return new FoliaTask(scheduler.runAtFixedRate(plugin, t -> safeRunnable.run(), safeDelay, safePeriod, TimeUnit.MILLISECONDS));
+                    return new FoliaTask(scheduler.runAtFixedRate(plugin, t -> safeRunnable.run(), safeDelay * 50L, safePeriod * 50L, TimeUnit.MILLISECONDS));
                 } else if (delay > 0) {
                     return new FoliaTask(scheduler.runDelayed(plugin, t -> safeRunnable.run(), delay, TimeUnit.MILLISECONDS));
                 } else {
@@ -575,7 +509,7 @@ public class MagmaLib {
             }
         }
 
-        private Task runAtLocation() {
+        private Task runAtLocation(Runnable safeRunnable) {
             if (isFolia()) {
                 RegionScheduler scheduler = Bukkit.getRegionScheduler();
 
@@ -592,10 +526,8 @@ public class MagmaLib {
 
                 long delayTicks = toFoliaSafeTicks(delay > 0 ? delay : 0, period > 0, true);
                 long periodTicks = toFoliaSafeTicks(period, period > 0, false);
-                Runnable safeRunnable = () -> executeSafely(runnable);
 
                 if (period > 0) {
-                    // Folia requiere delay >= 1 para runAtFixedRate
                     long safeDelay = delay <= 0 ? 1 : delayTicks;
                     return new FoliaTask(scheduler.runAtFixedRate(plugin, location, t -> safeRunnable.run(), safeDelay, periodTicks));
                 } else if (delay > 0) {
@@ -605,11 +537,11 @@ public class MagmaLib {
                     return new EmptyTask();
                 }
             } else {
-                return runGlobal();
+                return runGlobal(safeRunnable);
             }
         }
 
-        private Task runWithEntity() {
+        private Task runWithEntity(Runnable safeRunnable) {
             if (isFolia() && entity != null) {
                 EntityScheduler scheduler = entity.getScheduler();
 
@@ -619,7 +551,6 @@ public class MagmaLib {
 
                 long delayTicks = toFoliaSafeTicks(delay > 0 ? delay : 0, period > 0, true);
                 long periodTicks = toFoliaSafeTicks(period, period > 0, false);
-                Runnable safeRunnable = () -> executeSafely(runnable);
 
                 if (period > 0) {
                     long safeDelay = delay <= 0 ? 1 : delayTicks;
@@ -631,20 +562,18 @@ public class MagmaLib {
                     return new EmptyTask();
                 }
             } else {
-                return runGlobal();
+                return runGlobal(safeRunnable);
             }
         }
 
-        private Task runGlobal() {
+        private Task runGlobal(Runnable safeRunnable) {
             if (isFolia()) {
                 GlobalRegionScheduler scheduler = Bukkit.getGlobalRegionScheduler();
 
                 long delayTicks = toFoliaSafeTicks(delay > 0 ? delay : 0, period > 0, true);
                 long periodTicks = toFoliaSafeTicks(period, period > 0, false);
-                Runnable safeRunnable = () -> executeSafely(runnable);
 
                 if (period > 0) {
-                    // Folia requiere delay >= 1 para runAtFixedRate
                     long safeDelay = delay <= 0 ? 1 : delayTicks;
                     return new FoliaTask(scheduler.runAtFixedRate(plugin, t -> safeRunnable.run(), safeDelay, periodTicks));
                 } else if (delay > 0) {
@@ -657,7 +586,6 @@ public class MagmaLib {
                 BukkitTask task;
                 long delayTicks = delay > 0 ? delay / 50L : 0;
                 long periodTicks = period > 0 ? period / 50L : 0;
-                Runnable safeRunnable = () -> executeSafely(runnable);
 
                 if (period > 0) {
                     task = Bukkit.getScheduler().runTaskTimer(plugin, safeRunnable, Math.max(0, delayTicks), Math.max(1, periodTicks));
@@ -670,9 +598,6 @@ public class MagmaLib {
             }
         }
 
-        /**
-         * Genera string de contexto para logging/debugging.
-         */
         private String contextLog() {
             StringBuilder sb = new StringBuilder();
             if (taskName != null) sb.append(" task='").append(taskName).append("'");
@@ -682,11 +607,17 @@ public class MagmaLib {
         }
     }
 
-    // ==================== TASK INTERFACE ====================
+    // ==================== TASK INTERFACES ====================
 
+    /**
+     * Platform-agnostic task abstraction wrapper interface.
+     */
     public interface Task {
+        /** Cancels the scheduled task. */
         void cancel();
+        /** Checks whether the task has been explicitly cancelled. */
         boolean isCancelled();
+        /** Checks whether the task is still actively registered and waiting/running. */
         boolean isRunning();
     }
 
@@ -712,72 +643,114 @@ public class MagmaLib {
         @Override public boolean isRunning() { return task != null && !task.isCancelled(); }
     }
 
-    // ==================== API DIRECTA (HOT PATH - MÁXIMO RENDIMIENTO) ====================
+    // ==================== DIRECT API (HOT PATHS) ====================
 
+    /**
+     * Executes a task on the next main/global region tick immediately with minimum footprint.
+     *
+     * @param runnable The action to execute.
+     */
     public static void runDirect(Runnable runnable) {
-        if (isFoliaCache) {
+        if (isFolia()) {
             Bukkit.getGlobalRegionScheduler().execute(plugin, runnable);
         } else {
             Bukkit.getScheduler().runTask(plugin, runnable);
         }
     }
 
+    /**
+     * Executes a task immediately inside the thread managing the provided location region.
+     *
+     * @param location The targeted location routing context.
+     * @param runnable The action to execute.
+     */
     public static void runDirectAt(Location location, Runnable runnable) {
-        if (isFoliaCache) {
+        if (isFolia()) {
             Bukkit.getRegionScheduler().execute(plugin, location, runnable);
         } else {
             Bukkit.getScheduler().runTask(plugin, runnable);
         }
     }
 
+    /**
+     * Executes a task immediately inside the thread region managing the targeted entity lifecycle.
+     *
+     * @param entity   The target entity context.
+     * @param runnable The action to execute.
+     */
     public static void runDirectWith(Entity entity, Runnable runnable) {
-        if (isFoliaCache && entity != null) {
+        if (isFolia() && entity != null) {
             entity.getScheduler().execute(plugin, runnable, null, 0L);
         } else {
             Bukkit.getScheduler().runTask(plugin, runnable);
         }
     }
 
+    /**
+     * Schedules a delayed action on the main global ticker line using zero allocations.
+     *
+     * @param runnable   The action to execute.
+     * @param delayTicks The amount of ticks to wait.
+     */
     public static void runDirectLater(Runnable runnable, long delayTicks) {
-        if (isFoliaCache) {
-            Bukkit.getGlobalRegionScheduler().runDelayed(plugin, t -> runnable.run(), delayTicks);
+        if (isFolia()) {
+            Bukkit.getGlobalRegionScheduler().runDelayed(plugin, t -> runnable.run(), delayTicks * 50L);
         } else {
             Bukkit.getScheduler().runTaskLater(plugin, runnable, delayTicks);
         }
     }
 
+    /**
+     * Schedules a fast repeating timer task on the global tier lines with zero allocation structures.
+     *
+     * @param runnable    The action to repeat.
+     * @param periodTicks Repeating rate interval measured in ticks.
+     */
     public static void runDirectTimer(Runnable runnable, long periodTicks) {
-        if (isFoliaCache) {
-            long safeDelay = isFoliaCache ? 1L : 0L;
-            Bukkit.getGlobalRegionScheduler().runAtFixedRate(plugin, t -> runnable.run(), safeDelay, periodTicks);
+        if (isFolia()) {
+            long safeDelayMs = 50L;
+            long periodMs = periodTicks * 50L;
+            Bukkit.getGlobalRegionScheduler().runAtFixedRate(plugin, t -> runnable.run(), safeDelayMs, periodMs);
         } else {
             Bukkit.getScheduler().runTaskTimer(plugin, runnable, 0L, periodTicks);
         }
     }
 
+    /**
+     * Runs a streamlined global timer loop that will abort automatically as soon as a stop condition evaluates to true.
+     *
+     * @param task          The code block to execute repeatedly.
+     * @param periodTicks   Repeating rate interval measured in ticks.
+     * @param stopCondition Condition scanned every pass; when true, execution loops freeze and stop.
+     * @return A {@link Task} controller handle.
+     */
     public static Task runTimerUntilFast(Runnable task, long periodTicks, BooleanSupplier stopCondition) {
         Runnable wrapped = () -> {
             if (stopCondition.getAsBoolean()) return;
             task.run();
         };
-        if (isFoliaCache) {
-            long safeDelay = 1L;
-            return new FoliaTask(Bukkit.getGlobalRegionScheduler().runAtFixedRate(plugin, t -> wrapped.run(), safeDelay, periodTicks));
+        if (isFolia()) {
+            long safeDelayMs = 50L;
+            long periodMs = periodTicks * 50L;
+            return new FoliaTask(Bukkit.getGlobalRegionScheduler().runAtFixedRate(plugin, t -> wrapped.run(), safeDelayMs, periodMs));
         } else {
             return new PaperTask(Bukkit.getScheduler().runTaskTimer(plugin, wrapped, 0L, periodTicks));
         }
     }
 
-    // ==================== UTILIDADES ESTÁNDAR ====================
+    // ==================== STANDARD UTILITIES ====================
 
+    /** Runs an action on the very next tick. */
     public static void runNextTick(Runnable runnable) {
         task(runnable).afterTicks(1).run();
     }
 
+    /** Runs an action after a specified amount of time. */
     public static void runLater(Runnable runnable, long delay, TimeUnit unit) {
         task(runnable).after(delay, unit).run();
     }
 
+    /** Runs an action asynchronously and returns a {@link CompletableFuture}. */
     public static CompletableFuture<Void> runAsync(Runnable runnable) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         task(() -> {
@@ -791,6 +764,7 @@ public class MagmaLib {
         return future;
     }
 
+    /** Invokes a supplier asynchronously and passes the result into a {@link CompletableFuture}. */
     public static <T> CompletableFuture<T> callAsync(Supplier<T> supplier) {
         CompletableFuture<T> future = new CompletableFuture<>();
         task(() -> {
@@ -803,18 +777,21 @@ public class MagmaLib {
         return future;
     }
 
+    /** Runs a task synchronously on the global/main execution context thread lines. */
     public static void runSync(Runnable runnable) {
-        if (isFoliaCache) {
+        if (isFolia()) {
             Bukkit.getGlobalRegionScheduler().execute(plugin, runnable);
         } else {
             Bukkit.getScheduler().runTask(plugin, runnable);
         }
     }
 
+    /** Runs a task synchronously on the global layer after a set tick delay. */
     public static Task runSyncLater(Runnable runnable, long delayTicks) {
         return task(runnable).afterTicks(delayTicks).run();
     }
 
+    /** Calls a value provider on the main thread loop line, returning a completing promise token. */
     public static <T> CompletableFuture<T> callSync(Supplier<T> supplier) {
         CompletableFuture<T> future = new CompletableFuture<>();
         runSync(() -> {
@@ -827,6 +804,11 @@ public class MagmaLib {
         return future;
     }
 
+    /**
+     * Executes an operation on all currently online players safely.
+     *
+     * @param action The operation to apply to each player.
+     */
     public static void forAllPlayers(Consumer<Player> action) {
         runSync(() -> {
             for (Player player : Bukkit.getOnlinePlayers()) {
@@ -834,13 +816,18 @@ public class MagmaLib {
                     try {
                         action.accept(player);
                     } catch (Throwable e) {
-                        plugin.getLogger().warning("Error procesando jugador " + player.getName() + ": " + safeMessage(e));
+                        plugin.getLogger().warning("Error processing player " + player.getName() + ": " + safeMessage(e));
                     }
                 }
             }
         });
     }
 
+    /**
+     * Scans through all currently loaded chunks across all worlds asynchronously.
+     *
+     * @param action The operation to execute on each loaded chunk.
+     */
     public static void forAllLoadedChunks(Consumer<Chunk> action) {
         task(() -> {
             for (World world : Bukkit.getWorlds()) {
@@ -850,7 +837,7 @@ public class MagmaLib {
                             try {
                                 action.accept(chunk);
                             } catch (Throwable e) {
-                                plugin.getLogger().warning("Error procesando chunk: " + safeMessage(e));
+                                plugin.getLogger().warning("Error processing chunk: " + safeMessage(e));
                             }
                         }
                     }
@@ -859,6 +846,12 @@ public class MagmaLib {
         }).async().run();
     }
 
+    /**
+     * Executes a task at a specific location, only if the chunk at that location is currently loaded.
+     *
+     * @param location The target location.
+     * @param task     The task to run.
+     */
     public static void executeIfLoaded(Location location, Runnable task) {
         World world = location.getWorld();
         if (world != null && world.isChunkLoaded(location.getBlockX() >> 4, location.getBlockZ() >> 4)) {
@@ -866,6 +859,14 @@ public class MagmaLib {
         }
     }
 
+    /**
+     * Spawns a repeating task that monitors a stop condition, cancelling itself when triggered.
+     *
+     * @param task          The loop body task.
+     * @param periodTicks   Repeating rate interval measured in ticks.
+     * @param stopCondition Cancellation check logic.
+     * @return A {@link Task} controller handle.
+     */
     public static Task runTimerUntil(Runnable task, long periodTicks, BooleanSupplier stopCondition) {
         AtomicReference<Task> taskRef = new AtomicReference<>();
         Task actualTask = task(() -> {
@@ -880,9 +881,16 @@ public class MagmaLib {
         return actualTask;
     }
 
+    /**
+     * Runs a task with automatic retry attempts if it fails/throws an exception.
+     *
+     * @param task                 The task to try.
+     * @param maxAttempts          Maximum number of allowed tries.
+     * @param delayBetweenAttempts Time delay between each consecutive retry attempt.
+     * @param unit                 The time unit of the delay.
+     */
     public static void runWithRetry(Runnable task, int maxAttempts, long delayBetweenAttempts, TimeUnit unit) {
-        AtomicReference<Runnable> retryRef = new AtomicReference<>();
-        Runnable attempt = new Runnable() {
+        runLater(new Runnable() {
             int attempts = 0;
             @Override
             public void run() {
@@ -897,29 +905,42 @@ public class MagmaLib {
                     }
                 }
             }
-        };
-        retryRef.set(attempt);
-        attempt.run();
+        }, 0, TimeUnit.MILLISECONDS);
     }
 
+    /**
+     * Directly fetches Folia's RegionScheduler.
+     *
+     * @return The {@link RegionScheduler}.
+     * @throws UnsupportedOperationException If requested while running on non-Folia platforms.
+     */
     public static RegionScheduler getRegionScheduler() {
-        if (isFoliaCache) {
+        if (isFolia()) {
             return Bukkit.getRegionScheduler();
         }
         throw new UnsupportedOperationException("RegionScheduler is only available on Folia");
     }
 
+    /**
+     * Directly fetches Folia's EntityScheduler for a specific entity.
+     *
+     * @param entity The target entity.
+     * @return The {@link EntityScheduler} instance bound to the target entity.
+     * @throws UnsupportedOperationException If requested while running on non-Folia platforms.
+     */
     public static EntityScheduler getEntityScheduler(Entity entity) {
-        if (isFoliaCache && entity != null) {
+        if (isFolia() && entity != null) {
             return entity.getScheduler();
         }
         throw new UnsupportedOperationException("EntityScheduler is only available on Folia");
     }
 
+    /** Utility tool converting a value from Server Ticks to Milliseconds. */
     public static long ticksToMs(long ticks) {
         return ticks * 50L;
     }
 
+    /** Utility tool converting a value from Milliseconds to Server Ticks. */
     public static long msToTicks(long ms) {
         return ms / 50L;
     }
