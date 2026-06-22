@@ -6,7 +6,8 @@ import org.bukkit.entity.*;
 import org.bukkit.plugin.*;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.*;
-
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -40,7 +41,7 @@ import java.util.function.*;
  * }</pre>
  *
  * @author Piratemajo
- * @version 2.1.1
+ * @version 2.1.2
  * @see <a href="https://github.com/MagmaEnginers/MagmaLib">GitHub Repository</a>
  */
 public class MagmaLib {
@@ -169,7 +170,7 @@ public class MagmaLib {
         private final Runnable runnable;
         private final Supplier<T> supplier;
 
-        private Function<T, ?> thenApply;
+        private final List<Function<Object, Object>> applyChain = new ArrayList<>();
         private Consumer<T> thenAccept;
         private Function<Throwable, T> exceptionally;
 
@@ -339,12 +340,7 @@ public class MagmaLib {
             if (supplier == null) {
                 throw new IllegalStateException("thenApply() requires task(Supplier<T>), not task(Runnable)");
             }
-            if (this.thenApply == null) {
-                this.thenApply = mapper;
-            } else {
-                Function<T, ?> previous = this.thenApply;
-                this.thenApply = (Function<T, Object>) value -> mapper.apply((T) previous.apply(value));
-            }
+            applyChain.add(v -> mapper.apply((T) v));
             return (TaskBuilder<R>) this;
         }
 
@@ -418,12 +414,12 @@ public class MagmaLib {
                         if (cancelCondition != null && cancelCondition.getAsBoolean()) {
                             return;
                         }
-                        T result = supplier.get();
-                        if (thenApply != null) {
-                            result = (T) thenApply.apply(result);
+                        Object result = supplier.get();
+                        for (Function<Object, Object> mapper : applyChain) {
+                            result = mapper.apply(result);
                         }
                         if (thenAccept != null) {
-                            thenAccept.accept(result);
+                            thenAccept.accept((T) result);
                         }
                     } catch (Throwable e) {
                         if (exceptionally != null) {
@@ -485,9 +481,8 @@ public class MagmaLib {
             if (isFolia()) {
                 AsyncScheduler scheduler = Bukkit.getAsyncScheduler();
                 if (period > 0) {
-                    long safeDelay = toFoliaSafeTicks(delay > 0 ? delay : 0, true, true);
-                    long safePeriod = toFoliaSafeTicks(period, true, false);
-                    return new FoliaTask(scheduler.runAtFixedRate(plugin, t -> safeRunnable.run(), safeDelay * 50L, safePeriod * 50L, TimeUnit.MILLISECONDS));
+                    long safeDelayMs = delay > 0 ? delay : 50L;
+                    return new FoliaTask(scheduler.runAtFixedRate(plugin, t -> safeRunnable.run(), safeDelayMs, period, TimeUnit.MILLISECONDS));
                 } else if (delay > 0) {
                     return new FoliaTask(scheduler.runDelayed(plugin, t -> safeRunnable.run(), delay, TimeUnit.MILLISECONDS));
                 } else {
@@ -694,7 +689,7 @@ public class MagmaLib {
      */
     public static void runDirectLater(Runnable runnable, long delayTicks) {
         if (isFolia()) {
-            Bukkit.getGlobalRegionScheduler().runDelayed(plugin, t -> runnable.run(), delayTicks * 50L);
+            Bukkit.getGlobalRegionScheduler().runDelayed(plugin, t -> runnable.run(), delayTicks);
         } else {
             Bukkit.getScheduler().runTaskLater(plugin, runnable, delayTicks);
         }
@@ -708,9 +703,7 @@ public class MagmaLib {
      */
     public static void runDirectTimer(Runnable runnable, long periodTicks) {
         if (isFolia()) {
-            long safeDelayMs = 50L;
-            long periodMs = periodTicks * 50L;
-            Bukkit.getGlobalRegionScheduler().runAtFixedRate(plugin, t -> runnable.run(), safeDelayMs, periodMs);
+            Bukkit.getGlobalRegionScheduler().runAtFixedRate(plugin, t -> runnable.run(), 1L, Math.max(1L, periodTicks));
         } else {
             Bukkit.getScheduler().runTaskTimer(plugin, runnable, 0L, periodTicks);
         }
@@ -725,17 +718,23 @@ public class MagmaLib {
      * @return A {@link Task} controller handle.
      */
     public static Task runTimerUntilFast(Runnable task, long periodTicks, BooleanSupplier stopCondition) {
+        AtomicReference<Task> taskRef = new AtomicReference<>();
         Runnable wrapped = () -> {
-            if (stopCondition.getAsBoolean()) return;
+            if (stopCondition.getAsBoolean()) {
+                Task t = taskRef.get();
+                if (t != null) t.cancel();
+                return;
+            }
             task.run();
         };
+        Task scheduled;
         if (isFolia()) {
-            long safeDelayMs = 50L;
-            long periodMs = periodTicks * 50L;
-            return new FoliaTask(Bukkit.getGlobalRegionScheduler().runAtFixedRate(plugin, t -> wrapped.run(), safeDelayMs, periodMs));
+            scheduled = new FoliaTask(Bukkit.getGlobalRegionScheduler().runAtFixedRate(plugin, t -> wrapped.run(), 1L, Math.max(1L, periodTicks)));
         } else {
-            return new PaperTask(Bukkit.getScheduler().runTaskTimer(plugin, wrapped, 0L, periodTicks));
+            scheduled = new PaperTask(Bukkit.getScheduler().runTaskTimer(plugin, wrapped, 0L, periodTicks));
         }
+        taskRef.set(scheduled);
+        return scheduled;
     }
 
     // ==================== STANDARD UTILITIES ====================
@@ -824,12 +823,13 @@ public class MagmaLib {
     }
 
     /**
-     * Scans through all currently loaded chunks across all worlds asynchronously.
+     * Scans through all currently loaded chunks across all worlds synchronously on the main thread,
+     * then processes them. Chunk data is NOT thread-safe and must be read on the main thread.
      *
      * @param action The operation to execute on each loaded chunk.
      */
     public static void forAllLoadedChunks(Consumer<Chunk> action) {
-        task(() -> {
+        runSync(() -> {
             for (World world : Bukkit.getWorlds()) {
                 if (world != null) {
                     for (Chunk chunk : world.getLoadedChunks()) {
@@ -843,7 +843,7 @@ public class MagmaLib {
                     }
                 }
             }
-        }).async().run();
+        });
     }
 
     /**
@@ -855,7 +855,7 @@ public class MagmaLib {
     public static void executeIfLoaded(Location location, Runnable task) {
         World world = location.getWorld();
         if (world != null && world.isChunkLoaded(location.getBlockX() >> 4, location.getBlockZ() >> 4)) {
-            task(task).at(location).run();
+            MagmaLib.task(task).at(location).run();
         }
     }
 
@@ -869,7 +869,7 @@ public class MagmaLib {
      */
     public static Task runTimerUntil(Runnable task, long periodTicks, BooleanSupplier stopCondition) {
         AtomicReference<Task> taskRef = new AtomicReference<>();
-        Task actualTask = task(() -> {
+        Task actualTask = MagmaLib.task(() -> {
             if (stopCondition.getAsBoolean()) {
                 Task t = taskRef.get();
                 if (t != null) t.cancel();
@@ -890,7 +890,7 @@ public class MagmaLib {
      * @param unit                 The time unit of the delay.
      */
     public static void runWithRetry(Runnable task, int maxAttempts, long delayBetweenAttempts, TimeUnit unit) {
-        runLater(new Runnable() {
+        new Runnable() {
             int attempts = 0;
             @Override
             public void run() {
@@ -905,7 +905,7 @@ public class MagmaLib {
                     }
                 }
             }
-        }, 0, TimeUnit.MILLISECONDS);
+        }.run();
     }
 
     /**
