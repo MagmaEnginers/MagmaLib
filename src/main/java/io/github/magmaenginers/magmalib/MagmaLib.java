@@ -3,116 +3,295 @@ package io.github.magmaenginers.magmalib;
 import io.papermc.paper.threadedregions.scheduler.*;
 import org.bukkit.*;
 import org.bukkit.entity.*;
+import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.plugin.*;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
+import java.lang.annotation.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
 import java.util.function.*;
+import java.util.logging.Level;
 
 /**
- * Modern, type-safe scheduling API providing an abstraction layer for both Paper and Folia.
- * <p>
- * <b>Main Features:</b>
+ * MagmaLib — Modern, type-safe scheduling API for Paper 1.20+ and Folia.
+ *
  * <ul>
- * <li>Fluent Task Builder with type-safe generic composition.</li>
- * <li>Zero-allocation direct API designed for hot paths.</li>
- * <li>Automatic Folia/Paper detection backed by a fast reflection cache.</li>
- * <li>Safe chunk and entity handling with an {@code unsafe()} bypass for maximum performance.</li>
- * <li>CompletableFuture-style task chaining: {@code thenApply}, {@code thenAccept}, {@code exceptionally}.</li>
- * <li>Advanced flow control utilities: {@code runTimerUntil}, {@code runWithRetry}, {@code forAllPlayers}.</li>
+ *   <li>Type-safe functional composition: {@code thenApply}, {@code thenAccept}, {@code exceptionally}</li>
+ *   <li>Global task tracking + {@link #cancelAllTasks()} for clean {@code onDisable()}</li>
+ *   <li>Named {@link TaskGroup}s for grouped cancellation (e.g. per-player, per-region)</li>
+ *   <li>Three-platform detection: {@link #isFolia()}, {@link #isPaper()}, {@link #isSpigot()}</li>
+ *   <li>Async teleport with platform-aware fallbacks: {@link #teleportAsync(Entity, Location)}</li>
+ *   <li>Self-cancelling timers that actually cancel: {@link #runTimerUntil}, {@link #runTimerWhile}</li>
+ *   <li>Zero-allocation Direct API for hot paths</li>
+ *   <li>Zero external dependencies — single file, copy and go</li>
+ *   <li>{@code @MainThread} / {@code @AnyThread} annotations for IDE thread-safety hints</li>
  * </ul>
  *
- * <p><b>Example of type-safe functional composition:</b></p>
+ * <h2>Quick example</h2>
  * <pre>{@code
- * MagmaLib.<Integer>task(() -> calculateScore(player))
- * .at(player.getLocation())
- * .afterTicks(10)
- * .thenApply(score -> score > 100 ? "Excellent!" : "Keep trying!")
- * .thenAccept(message -> player.sendMessage(message))
- * .exceptionally(e -> {
- * plugin.getLogger().warning("Failed to calculate score: " + safeMessage(e));
- * return "Error";
- * })
- * .run();
+ * // onEnable
+ * MagmaLib.init(this);
+ *
+ * // Type-safe pipeline
+ * MagmaLib.<Integer>task(() -> computeScore(player))
+ *     .with(player)
+ *     .afterTicks(5)
+ *     .thenApply(score -> score > 100 ? "S rank!" : "Try harder")
+ *     .thenAccept(player::sendMessage)
+ *     .exceptionally(e -> { getLogger().warning(e.getMessage()); return "Error"; })
+ *     .run();
+ *
+ * // onDisable
+ * MagmaLib.cancelAllTasks();
  * }</pre>
  *
  * @author Piratemajo
- * @version 2.1.2
+ * @version 3.0.0
  * @see <a href="https://github.com/MagmaEnginers/MagmaLib">GitHub Repository</a>
  */
-public class MagmaLib {
+@SuppressWarnings("unused")
+public final class MagmaLib {
 
-    private static Plugin plugin;
-    private static Boolean isFoliaCache = null;
+    // ==================== THREAD-SAFETY ANNOTATIONS ====================
 
     /**
-     * Initializes MagmaLib with your main plugin instance.
-     * <p>
-     * This method must be called within your {@link JavaPlugin#onEnable()} before utilizing
-     * any other library feature. It detects Folia via reflection and caches the result.
-     *
-     * @param plugin The main plugin instance.
-     * @throws IllegalStateException If the plugin instance is null.
+     * Marks a method that MUST be called from the main/region thread.
+     * Calling from an async thread will trigger AsyncCatcher errors.
      */
+    @Documented
+    @Retention(RetentionPolicy.SOURCE)
+    @Target(ElementType.METHOD)
+    public @interface MainThread {}
+
+    /**
+     * Marks a method that is safe to call from any thread.
+     */
+    @Documented
+    @Retention(RetentionPolicy.SOURCE)
+    @Target(ElementType.METHOD)
+    public @interface AnyThread {}
+
+    // ==================== STATE ====================
+
+    private static volatile Plugin plugin;
+    private static volatile Boolean isFoliaCache  = null;
+    private static volatile Boolean isPaperCache  = null;
+    private static volatile Boolean isSpigotCache = null;
+
+    /** Global registry of all live tasks for {@link #cancelAllTasks()}. */
+    private static final Set<Task> globalTaskRegistry =
+            Collections.newSetFromMap(new ConcurrentHashMap<>());
+
+    private MagmaLib() {}
+
+    // ==================== INITIALIZATION ====================
+
+    /**
+     * Initialises MagmaLib. Call once in {@link JavaPlugin#onEnable()}.
+     *
+     * @param plugin Non-null plugin instance.
+     * @throws IllegalArgumentException if {@code plugin} is null.
+     */
+    @AnyThread
     public static void init(Plugin plugin) {
-        if (plugin == null) {
-            throw new IllegalStateException("MagmaLib.init() requires a non-null plugin instance");
-        }
+        if (plugin == null) throw new IllegalArgumentException(
+                "MagmaLib.init() requires a non-null plugin instance");
         MagmaLib.plugin = plugin;
+        detectPlatform();
+    }
+
+    private static void detectPlatform() {
+        // Detect Folia
         try {
             Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
-            isFoliaCache = true;
-        } catch (ClassNotFoundException e) {
-            isFoliaCache = false;
-        }
+            isFoliaCache  = true;
+            isPaperCache  = false;
+            isSpigotCache = false;
+            return;
+        } catch (ClassNotFoundException ignored) {}
+
+        isFoliaCache = false;
+
+        // Detect Paper (has io.papermc.paper namespace beyond Folia)
+        try {
+            Class.forName("io.papermc.paper.configuration.GlobalConfiguration");
+            isPaperCache  = true;
+            isSpigotCache = false;
+            return;
+        } catch (ClassNotFoundException ignored) {}
+
+        isPaperCache  = false;
+        isSpigotCache = true;
     }
 
+    // ==================== PLATFORM DETECTION ====================
+
     /**
-     * Determines whether the current server software is running on Folia.
-     * <p>
-     * The result is safely cached after the first check to completely avoid overhead.
-     *
-     * @return {@code true} if running on Folia, {@code false} if Paper/Spigot.
-     * @throws IllegalStateException If {@link #init(Plugin)} hasn't been called yet.
+     * Returns {@code true} when running on Folia.
+     * @throws IllegalStateException if {@link #init(Plugin)} has not been called.
      */
+    @AnyThread
     public static boolean isFolia() {
-        if (isFoliaCache == null) {
-            if (plugin == null) {
-                throw new IllegalStateException("MagmaLib.init() must be called before isFolia()");
-            }
-            try {
-                Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
-                isFoliaCache = true;
-            } catch (ClassNotFoundException e) {
-                isFoliaCache = false;
-            }
+        Boolean c = isFoliaCache;
+        if (c == null) {
+            requireInit();
+            detectPlatform();
+            c = isFoliaCache;
         }
-        return isFoliaCache;
+        return c;
     }
 
     /**
-     * Gets the currently registered plugin instance.
-     *
-     * @return The registered {@link Plugin}, or {@code null} if uninitialized.
+     * Returns {@code true} when running on Paper (non-Folia).
      */
-    public static Plugin getPlugin() {
-        return plugin;
+    @AnyThread
+    public static boolean isPaper() {
+        Boolean c = isPaperCache;
+        if (c == null) { requireInit(); detectPlatform(); c = isPaperCache; }
+        return c;
+    }
+
+    /**
+     * Returns {@code true} when running on Spigot (no Paper extensions detected).
+     */
+    @AnyThread
+    public static boolean isSpigot() {
+        Boolean c = isSpigotCache;
+        if (c == null) { requireInit(); detectPlatform(); c = isSpigotCache; }
+        return c;
+    }
+
+    /** @return The registered plugin, or {@code null} if uninitialised. */
+    @AnyThread
+    public static Plugin getPlugin() { return plugin; }
+
+    private static void requireInit() {
+        if (plugin == null) throw new IllegalStateException(
+                "MagmaLib.init(plugin) must be called in onEnable() before using MagmaLib");
+    }
+
+    // ==================== GLOBAL TASK TRACKING ====================
+
+    /**
+     * Cancels every task ever scheduled through MagmaLib and clears the registry.
+     * <p>Call this in {@link JavaPlugin#onDisable()} to ensure clean shutdown.</p>
+     *
+     * <pre>{@code
+     * @Override
+     * public void onDisable() {
+     *     MagmaLib.cancelAllTasks();
+     * }
+     * }</pre>
+     */
+    @AnyThread
+    public static void cancelAllTasks() {
+        int count = 0;
+        for (Task t : globalTaskRegistry) {
+            if (t.isRunning()) { t.cancel(); count++; }
+        }
+        globalTaskRegistry.clear();
+        if (plugin != null) {
+            plugin.getLogger().info("[MagmaLib] Cancelled " + count + " task(s) on shutdown.");
+        }
+    }
+
+    /**
+     * Returns an unmodifiable snapshot of all currently tracked tasks.
+     * Useful for diagnostics or custom shutdown logic.
+     */
+    @AnyThread
+    public static Set<Task> getTrackedTasks() {
+        return Collections.unmodifiableSet(new HashSet<>(globalTaskRegistry));
+    }
+
+    /** Removes completed/cancelled tasks from the global registry to prevent memory leaks. */
+    @AnyThread
+    public static void pruneRegistry() {
+        globalTaskRegistry.removeIf(t -> !t.isRunning());
+    }
+
+    private static Task track(Task task) {
+        globalTaskRegistry.add(task);
+        return task;
+    }
+
+    // ==================== TASK GROUP ====================
+
+    /**
+     * A named group of tasks that can be cancelled together.
+     * <p>Useful for per-player, per-region, or per-feature task management.</p>
+     *
+     * <pre>{@code
+     * TaskGroup group = MagmaLib.newTaskGroup("player-" + player.getUniqueId());
+     *
+     * group.add(MagmaLib.task(() -> updateAura(player))
+     *     .with(player).everyTicks(5).run());
+     *
+     * group.add(MagmaLib.task(() -> checkCooldown(player))
+     *     .everyTicks(20).run());
+     *
+     * // On player quit:
+     * group.cancelAll();
+     * }</pre>
+     */
+    public static final class TaskGroup {
+
+        private final String name;
+        private final Set<Task> tasks = Collections.newSetFromMap(new ConcurrentHashMap<>());
+
+        private TaskGroup(String name) { this.name = name; }
+
+        /** Adds a task to this group and returns it for chaining. */
+        public Task add(Task task) {
+            tasks.add(task);
+            return task;
+        }
+
+        /** Cancels all tasks in this group. */
+        public void cancelAll() {
+            int count = 0;
+            for (Task t : tasks) {
+                if (t.isRunning()) { t.cancel(); count++; }
+            }
+            tasks.clear();
+            if (plugin != null) {
+                plugin.getLogger().fine("[MagmaLib] TaskGroup '" + name + "' cancelled " + count + " task(s).");
+            }
+        }
+
+        /** Removes finished tasks from this group to free memory. */
+        public void prune() {
+            tasks.removeIf(t -> !t.isRunning());
+        }
+
+        /** Returns the number of currently active tasks in this group. */
+        public int activeCount() {
+            return (int) tasks.stream().filter(Task::isRunning).count();
+        }
+
+        /** Returns this group's name. */
+        public String getName() { return name; }
+    }
+
+    /**
+     * Creates a new named {@link TaskGroup}.
+     *
+     * @param name Descriptive name (e.g. {@code "player-<uuid>"} or {@code "region-mining"}).
+     */
+    @AnyThread
+    public static TaskGroup newTaskGroup(String name) {
+        return new TaskGroup(name);
     }
 
     // ==================== UTILITIES ====================
 
     /**
-     * Gets a null-safe error message suitable for logging purposes.
-     * <p>
-     * If {@code e.getMessage()} is null or empty, it returns the Exception's simple class name.
-     *
-     * @param e The exception to process.
-     * @return A descriptive string that is guaranteed to never be null.
+     * Returns a guaranteed non-null, non-empty message from a {@link Throwable}.
+     * Falls back to the exception's simple class name.
      */
+    @AnyThread
     public static String safeMessage(Throwable e) {
         if (e == null) return "Unknown error";
         String msg = e.getMessage();
@@ -122,56 +301,53 @@ public class MagmaLib {
     // ==================== TASK BUILDER ENTRY POINTS ====================
 
     /**
-     * Creates a new {@link TaskBuilder} for tasks that do not return a value.
-     * <p>
-     * Backward-compatible endpoint. For type-safe functional chaining, use {@link #task(Supplier)} instead.
+     * Creates a {@link TaskBuilder} for fire-and-forget tasks.
      *
-     * @param runnable The code block to execute.
-     * @return A new {@link TaskBuilder} instance for further configuration.
+     * @param runnable The action to execute.
      */
+    @AnyThread
     public static TaskBuilder<Void> task(Runnable runnable) {
         return new TaskBuilder<>(runnable);
     }
 
     /**
-     * Creates a new generic {@link TaskBuilder} for tasks that return a computed value.
-     * <p>
-     * This supports functional pipeline styling similar to {@link CompletableFuture} via
-     * {@link TaskBuilder#thenApply(Function)}, {@link TaskBuilder#thenAccept(Consumer)},
-     * and {@link TaskBuilder#exceptionally(Function)}.
+     * Creates a type-safe {@link TaskBuilder} for tasks that produce a value.
+     * Enables {@code thenApply} / {@code thenAccept} / {@code exceptionally} pipelines.
      *
-     * @param supplier The value provider/calculator.
-     * @param <T> The type of the value returned by this provider.
-     * @return A new {@link TaskBuilder} instance supporting type-safe composition.
+     * @param supplier The value supplier.
+     * @param <T>      The produced type.
      */
+    @AnyThread
     public static <T> TaskBuilder<T> task(Supplier<T> supplier) {
         return new TaskBuilder<>(supplier);
     }
 
-    // ==================== TASK BUILDER IMPLEMENTATION ====================
+    // ==================== TASK BUILDER ====================
 
     /**
-     * Fluent builder to configure and schedule tasks with multi-platform awareness.
+     * Fluent builder for cross-platform task scheduling.
+     * <p>Automatically selects the correct Folia scheduler based on context.</p>
      *
-     * @param <T> The return type of the task (Void for Runnable actions).
+     * @param <T> Return type ({@link Void} for Runnable-based builders).
      */
-    public static class TaskBuilder<T> {
-        private Location location;
-        private Entity entity;
-        private long delay = -1;
-        private long period = -1;
-        private boolean async = false;
-        private boolean cancelIfUnloaded = true;
-        private boolean unsafe = false;
-        private BooleanSupplier cancelCondition;
+    public static final class TaskBuilder<T> {
+
+        private Location          location;
+        private Entity            entity;
+        private long              delay  = -1; // milliseconds
+        private long              period = -1; // milliseconds
+        private boolean           async  = false;
+        private boolean           cancelIfUnloaded = true;
+        private boolean           unsafe = false;
+        private BooleanSupplier   cancelCondition;
         private Consumer<Throwable> exceptionHandler;
-        private String taskName;
+        private String            taskName;
+        private TaskGroup         group;
 
-        private final Runnable runnable;
-        private final Supplier<T> supplier;
-
+        private final Runnable         runnable;
+        private final Supplier<T>      supplier;
         private final List<Function<Object, Object>> applyChain = new ArrayList<>();
-        private Consumer<T> thenAccept;
+        private Consumer<T>            thenAccept;
         private Function<Throwable, T> exceptionally;
 
         private TaskBuilder(Runnable runnable) {
@@ -184,662 +360,584 @@ public class MagmaLib {
             this.runnable = null;
         }
 
-        /**
-         * Binds the task to a specific location for regional routing on Folia.
-         *
-         * @param location The target location.
-         * @return This builder instance for chaining.
-         */
+        // ---- ROUTING ----
+
+        /** Routes to the chunk region of {@code location} (Folia) or main thread (Paper). */
         public TaskBuilder<T> at(Location location) {
-            this.location = location;
-            return this;
+            this.location = location; return this;
         }
 
-        /**
-         * Binds the task to an entity's lifecycle and regional thread scheduler on Folia.
-         *
-         * @param entity The target entity.
-         * @return This builder instance for chaining.
-         */
+        /** Routes to the entity's scheduler (Folia) or main thread (Paper). */
         public TaskBuilder<T> with(Entity entity) {
-            this.entity = entity;
-            return this;
+            this.entity = entity; return this;
         }
 
-        /**
-         * Sets an initial delay before the task's first execution.
-         *
-         * @param delay The duration of the delay.
-         * @param unit The time unit of the delay.
-         * @return This builder instance for chaining.
-         */
+        // ---- TIMING ----
+
+        /** Initial delay in real time. */
         public TaskBuilder<T> after(long delay, TimeUnit unit) {
-            this.delay = unit.toMillis(delay);
-            return this;
+            this.delay = unit.toMillis(delay); return this;
         }
 
-        /**
-         * Sets an initial delay in Minecraft Server Ticks (1 tick = 50ms).
-         *
-         * @param ticks The amount of ticks to wait.
-         * @return This builder instance for chaining.
-         */
+        /** Initial delay in server ticks (1 tick = 50 ms). */
         public TaskBuilder<T> afterTicks(long ticks) {
-            this.delay = ticks * 50L;
-            return this;
+            this.delay = ticks * 50L; return this;
         }
 
-        /**
-         * Sets a repeating interval period for the task.
-         *
-         * @param period The duration of the interval.
-         * @param unit The time unit of the interval.
-         * @return This builder instance for chaining.
-         */
+        /** Repeating interval in real time. */
         public TaskBuilder<T> every(long period, TimeUnit unit) {
-            this.period = unit.toMillis(period);
-            return this;
+            this.period = unit.toMillis(period); return this;
         }
 
-        /**
-         * Sets a repeating interval period in Minecraft Server Ticks.
-         *
-         * @param ticks The amount of ticks between runs.
-         * @return This builder instance for chaining.
-         */
+        /** Repeating interval in server ticks. Values below 1 are clamped at dispatch time. */
         public TaskBuilder<T> everyTicks(long ticks) {
-            this.period = ticks * 50L;
-            return this;
+            this.period = ticks * 50L; return this;
         }
 
+        // ---- FLAGS ----
+
         /**
-         * Flags the task to be run completely asynchronously.
-         * <p>
-         * ⚠️ Asynchronous tasks cannot interact safely with standard Bukkit API components.
-         *
-         * @return This builder instance for chaining.
+         * Runs on the async scheduler.
+         * <p>⚠️ Incompatible with {@link #with(Entity)} and {@link #at(Location)}.
+         * Any Bukkit API call inside will throw.</p>
          */
         public TaskBuilder<T> async() {
-            this.async = true;
-            return this;
+            this.async = true; return this;
         }
 
-        /**
-         * Configures whether the task should automatically abort if target chunks are unloaded.
-         *
-         * @param cancel {@code true} to automatically drop the task if unloaded (default).
-         * @return This builder instance for chaining.
-         */
+        /** Controls auto-cancellation when the target chunk unloads (default: {@code true}). */
         public TaskBuilder<T> cancelIfUnloaded(boolean cancel) {
-            this.cancelIfUnloaded = cancel;
-            return this;
+            this.cancelIfUnloaded = cancel; return this;
         }
 
         /**
-         * ⚠️ <b>HIGH PERFORMANCE BYPASS:</b> Completely disables structural safety checks.
-         * <p>
-         * Use this ONLY in high-frequency hot paths where you manually guarantee:
-         * <ul>
-         * <li>{@code location.getWorld() != null}</li>
-         * <li>The chunk is actively loaded: {@code world.isChunkLoaded(x, z)}</li>
-         * <li>The target entity is valid: {@code entity.isValid() == true}</li>
-         * </ul>
-         *
-         * @return This builder instance for chaining.
+         * Disables chunk-loaded and entity-valid safety checks.
+         * <p>⚠️ Only use in hot paths where you manually verify all preconditions.</p>
          */
         public TaskBuilder<T> unsafe() {
-            this.unsafe = true;
-            return this;
+            this.unsafe = true; return this;
         }
 
+        // ---- FLOW CONTROL ----
+
         /**
-         * Defines a dynamic condition checked right before every execution to trigger cancellation.
-         *
-         * @param condition A supplier returning {@code true} to cancel the task permanently.
-         * @return This builder instance for chaining.
+         * Condition evaluated before each execution. When {@code true}, the run is skipped.
+         * <p>For self-cancelling timers prefer {@link MagmaLib#runTimerUntil}.</p>
          */
         public TaskBuilder<T> cancelIf(BooleanSupplier condition) {
-            this.cancelCondition = condition;
-            return this;
+            this.cancelCondition = condition; return this;
         }
 
-        /**
-         * Assigns a custom error handler to trap exceptions thrown during execution.
-         *
-         * @param handler A consumer acting upon the caught exception.
-         * @return This builder instance for chaining.
-         */
+        /** Custom exception handler. If absent, errors are logged via the plugin logger. */
         public TaskBuilder<T> handleException(Consumer<Throwable> handler) {
-            this.exceptionHandler = handler;
-            return this;
+            this.exceptionHandler = handler; return this;
         }
 
-        /**
-         * Assigns a custom identifier tag for debugging and logging profiles.
-         *
-         * @param name Descriptive name of the task.
-         * @return This builder instance for chaining.
-         */
+        /** Tags this task. The name appears in error logs for easier debugging. */
         public TaskBuilder<T> named(String name) {
-            this.taskName = name;
-            return this;
+            this.taskName = name; return this;
         }
 
         /**
-         * Pipelines the result of the task into a mapping function.
-         * <p>
-         * Behaves exactly like {@link CompletableFuture#thenApply(Function)}.
-         *
-         * @param mapper The function transforming the old type into a new one.
-         * @param <R> The new transformed data type.
-         * @return An updated TaskBuilder mapping the new return type.
-         * @throws IllegalStateException If used on a builder initialized with a Runnable.
+         * Registers this task with a {@link TaskGroup} on {@link #run()}.
+         * The task is automatically added to the group and cancelled when the group is cancelled.
+         */
+        public TaskBuilder<T> inGroup(TaskGroup group) {
+            this.group = group; return this;
+        }
+
+        // ---- COMPOSITION (requires Supplier mode) ----
+
+        /**
+         * Transforms the pipeline value.
+         * <p>Requires {@code task(Supplier<T>)}.</p>
          */
         @SuppressWarnings("unchecked")
         public <R> TaskBuilder<R> thenApply(Function<T, R> mapper) {
-            if (supplier == null) {
-                throw new IllegalStateException("thenApply() requires task(Supplier<T>), not task(Runnable)");
-            }
+            requireSupplierMode("thenApply");
             applyChain.add(v -> mapper.apply((T) v));
             return (TaskBuilder<R>) this;
         }
 
         /**
-         * Consumes the final result of the pipeline without returning a value.
-         * <p>
-         * Behaves exactly like {@link CompletableFuture#thenAccept(Consumer)}.
-         *
-         * @param action Consumer acting upon the computed result.
-         * @return This builder instance for chaining.
-         * @throws IllegalStateException If used on a builder initialized with a Runnable.
+         * Consumes the final pipeline value for a side effect.
+         * Multiple calls chain sequentially.
+         * <p>Requires {@code task(Supplier<T>)}.</p>
          */
         public TaskBuilder<T> thenAccept(Consumer<T> action) {
-            if (supplier == null) {
-                throw new IllegalStateException("thenAccept() requires task(Supplier<T>), not task(Runnable)");
-            }
+            requireSupplierMode("thenAccept");
             if (this.thenAccept == null) {
                 this.thenAccept = action;
             } else {
-                Consumer<T> previous = this.thenAccept;
-                this.thenAccept = value -> {
-                    previous.accept(value);
-                    action.accept(value);
-                };
+                Consumer<T> prev = this.thenAccept;
+                this.thenAccept = v -> { prev.accept(v); action.accept(v); };
             }
             return this;
         }
 
         /**
-         * Traps exceptions within the pipeline and recovers with a fallback value.
-         * <p>
-         * Behaves exactly like {@link CompletableFuture#exceptionally(Function)}.
-         *
-         * @param fallback A function returning a safe value upon failure.
-         * @return This builder instance for chaining.
-         * @throws IllegalStateException If used on a builder initialized with a Runnable.
+         * Catches any exception in the pipeline and returns a fallback value.
+         * <p>Requires {@code task(Supplier<T>)}.</p>
          */
         public TaskBuilder<T> exceptionally(Function<Throwable, T> fallback) {
-            if (supplier == null) {
-                throw new IllegalStateException("exceptionally() requires task(Supplier<T>), not task(Runnable)");
-            }
-            this.exceptionally = fallback;
-            return this;
+            requireSupplierMode("exceptionally");
+            this.exceptionally = fallback; return this;
         }
 
+        private void requireSupplierMode(String method) {
+            if (supplier == null) throw new IllegalStateException(
+                    method + "() requires task(Supplier<T>), not task(Runnable)");
+        }
+
+        // ---- DISPATCH ----
+
         /**
-         * Finalizes configuration and schedules the task context across the target platform.
+         * Finalises configuration and dispatches the task.
          *
-         * @return A {@link Task} handle allowing manual lifecycle monitoring or cancellation.
+         * @return A {@link Task} handle for cancellation and status queries.
          */
         public Task run() {
-            Runnable executable = createExecutable();
-            if (async) {
-                return runAsync(executable);
-            } else if (location != null) {
-                return runAtLocation(executable);
-            } else if (entity != null) {
-                return runWithEntity(executable);
-            } else {
-                return runGlobal(executable);
-            }
+            requireInit();
+            Runnable exec = createExecutable();
+            Task task;
+            if      (async)          task = runAsyncInternal(exec);
+            else if (location != null) task = runAtLocation(exec);
+            else if (entity != null)   task = runWithEntity(exec);
+            else                       task = runGlobal(exec);
+
+            track(task);
+            if (group != null) group.add(task);
+            return task;
         }
 
         @SuppressWarnings("unchecked")
         private Runnable createExecutable() {
-            if (runnable != null) {
-                return () -> executeSafely(runnable);
-            } else if (supplier != null) {
-                return () -> {
-                    try {
-                        if (cancelCondition != null && cancelCondition.getAsBoolean()) {
-                            return;
-                        }
-                        Object result = supplier.get();
-                        for (Function<Object, Object> mapper : applyChain) {
-                            result = mapper.apply(result);
-                        }
-                        if (thenAccept != null) {
-                            thenAccept.accept((T) result);
-                        }
-                    } catch (Throwable e) {
-                        if (exceptionally != null) {
-                            try {
-                                exceptionally.apply(e);
-                                return;
-                            } catch (Throwable fallbackError) {
-                                if (exceptionHandler != null) {
-                                    exceptionHandler.accept(fallbackError);
-                                } else {
-                                    plugin.getLogger().severe("Fallback handler failed: " + safeMessage(fallbackError));
-                                }
-                            }
-                        }
-                        if (exceptionHandler != null) {
-                            exceptionHandler.accept(e);
-                        } else {
-                            String context = taskName != null ? " ['" + taskName + "']" : "";
-                            plugin.getLogger().severe("Error in MagmaLib task" + context + ": " + safeMessage(e));
-                            e.printStackTrace();
-                        }
-                    }
-                };
-            }
+            if (runnable != null) return () -> executeSafely(runnable);
+            if (supplier != null) return () -> {
+                try {
+                    if (cancelCondition != null && cancelCondition.getAsBoolean()) return;
+                    Object result = supplier.get();
+                    for (Function<Object, Object> m : applyChain) result = m.apply(result);
+                    if (thenAccept != null) thenAccept.accept((T) result);
+                } catch (Throwable e) {
+                    handlePipelineError(e);
+                }
+            };
             return () -> {};
+        }
+
+        private void handlePipelineError(Throwable original) {
+            if (exceptionally != null) {
+                try {
+                    exceptionally.apply(original);
+                    return;
+                } catch (Throwable fallbackError) {
+                    logError("Original error before fallback failed", original);
+                    logError("Fallback handler also failed", fallbackError);
+                    return;
+                }
+            }
+            if (exceptionHandler != null) exceptionHandler.accept(original);
+            else logError("Error in MagmaLib task" + contextLog(), original);
         }
 
         private void executeSafely(Runnable action) {
             try {
-                if (cancelCondition == null || !cancelCondition.getAsBoolean()) {
-                    action.run();
-                }
+                if (cancelCondition == null || !cancelCondition.getAsBoolean()) action.run();
             } catch (Throwable e) {
-                if (exceptionHandler != null) {
-                    exceptionHandler.accept(e);
-                } else {
-                    String context = taskName != null ? " ['" + taskName + "']" : "";
-                    plugin.getLogger().severe("Error in MagmaLib task" + context + ": " + safeMessage(e));
-                    e.printStackTrace();
-                }
+                if (exceptionHandler != null) exceptionHandler.accept(e);
+                else logError("Error in MagmaLib task" + contextLog(), e);
             }
         }
 
+        private void logError(String msg, Throwable e) {
+            plugin.getLogger().log(Level.SEVERE, msg + ": " + safeMessage(e), e);
+        }
+
+        /**
+         * Converts stored ms to Folia-safe ticks.
+         * Folia rejects 0-tick initial delays for fixed-rate tasks — minimum is 1.
+         */
         private long toFoliaSafeTicks(long ms, boolean isPeriodic, boolean isDelay) {
-            if (ms <= 0) {
-                if (isFolia() && isPeriodic && isDelay) {
-                    return 1;
-                }
-                return 0;
-            }
+            if (ms <= 0) return (isFolia() && isPeriodic && isDelay) ? 1L : 0L;
             long ticks = ms / 50L;
-            if (isFolia() && isPeriodic && isDelay && ticks <= 0) {
-                return 1;
-            }
-            return Math.max(0, ticks);
+            if (isFolia() && isPeriodic && isDelay && ticks <= 0) return 1L;
+            return Math.max(0L, ticks);
         }
 
-        private Task runAsync(Runnable safeRunnable) {
+        private Task runAsyncInternal(Runnable r) {
             if (isFolia()) {
-                AsyncScheduler scheduler = Bukkit.getAsyncScheduler();
+                AsyncScheduler s = Bukkit.getAsyncScheduler();
                 if (period > 0) {
-                    long safeDelayMs = delay > 0 ? delay : 50L;
-                    return new FoliaTask(scheduler.runAtFixedRate(plugin, t -> safeRunnable.run(), safeDelayMs, period, TimeUnit.MILLISECONDS));
+                    long safeDelay = delay > 0 ? delay : 50L;
+                    return new FoliaTask(s.runAtFixedRate(plugin, t -> r.run(), safeDelay, period, TimeUnit.MILLISECONDS));
                 } else if (delay > 0) {
-                    return new FoliaTask(scheduler.runDelayed(plugin, t -> safeRunnable.run(), delay, TimeUnit.MILLISECONDS));
+                    return new FoliaTask(s.runDelayed(plugin, t -> r.run(), delay, TimeUnit.MILLISECONDS));
                 } else {
-                    scheduler.runNow(plugin, t -> safeRunnable.run());
-                    return new EmptyTask();
+                    s.runNow(plugin, t -> r.run());
+                    return EmptyTask.INSTANCE;
                 }
             } else {
-                BukkitTask task;
-                long delayTicks = delay > 0 ? delay / 50L : 0;
+                long dt = delay > 0 ? delay / 50L : 0;
                 if (period > 0) {
-                    long periodTicks = period / 50L;
-                    task = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, safeRunnable, delayTicks, periodTicks);
+                    long pt = period / 50L;
+                    return new PaperTask(Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, r, dt, pt));
                 } else if (delay > 0) {
-                    task = Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, safeRunnable, delayTicks);
+                    return new PaperTask(Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, r, dt));
                 } else {
-                    task = Bukkit.getScheduler().runTaskAsynchronously(plugin, safeRunnable);
+                    return new PaperTask(Bukkit.getScheduler().runTaskAsynchronously(plugin, r));
                 }
-                return new PaperTask(task);
             }
         }
 
-        private Task runAtLocation(Runnable safeRunnable) {
+        private Task runAtLocation(Runnable r) {
             if (isFolia()) {
-                RegionScheduler scheduler = Bukkit.getRegionScheduler();
-
+                RegionScheduler s = Bukkit.getRegionScheduler();
                 if (!unsafe) {
-                    World world = location.getWorld();
-                    if (world == null) {
+                    World w = location.getWorld();
+                    if (w == null) {
                         plugin.getLogger().warning("Location world is null, task cancelled" + contextLog());
-                        return new EmptyTask();
+                        return EmptyTask.INSTANCE;
                     }
-                    if (cancelIfUnloaded && !world.isChunkLoaded(location.getBlockX() >> 4, location.getBlockZ() >> 4)) {
-                        return new EmptyTask();
-                    }
+                    if (cancelIfUnloaded && !w.isChunkLoaded(location.getBlockX() >> 4, location.getBlockZ() >> 4))
+                        return EmptyTask.INSTANCE;
                 }
-
-                long delayTicks = toFoliaSafeTicks(delay > 0 ? delay : 0, period > 0, true);
-                long periodTicks = toFoliaSafeTicks(period, period > 0, false);
-
+                long dt = toFoliaSafeTicks(delay > 0 ? delay : 0, period > 0, true);
+                long pt = toFoliaSafeTicks(period, period > 0, false);
                 if (period > 0) {
-                    long safeDelay = delay <= 0 ? 1 : delayTicks;
-                    return new FoliaTask(scheduler.runAtFixedRate(plugin, location, t -> safeRunnable.run(), safeDelay, periodTicks));
+                    long sd = delay <= 0 ? 1 : dt;
+                    return new FoliaTask(s.runAtFixedRate(plugin, location, t -> r.run(), sd, pt));
                 } else if (delay > 0) {
-                    return new FoliaTask(scheduler.runDelayed(plugin, location, t -> safeRunnable.run(), delayTicks));
+                    return new FoliaTask(s.runDelayed(plugin, location, t -> r.run(), dt));
                 } else {
-                    scheduler.run(plugin, location, t -> safeRunnable.run());
-                    return new EmptyTask();
+                    s.run(plugin, location, t -> r.run());
+                    return EmptyTask.INSTANCE;
                 }
-            } else {
-                return runGlobal(safeRunnable);
             }
+            return runGlobal(r);
         }
 
-        private Task runWithEntity(Runnable safeRunnable) {
+        private Task runWithEntity(Runnable r) {
             if (isFolia() && entity != null) {
-                EntityScheduler scheduler = entity.getScheduler();
-
-                if (!unsafe && cancelIfUnloaded && !entity.isValid()) {
-                    return new EmptyTask();
-                }
-
-                long delayTicks = toFoliaSafeTicks(delay > 0 ? delay : 0, period > 0, true);
-                long periodTicks = toFoliaSafeTicks(period, period > 0, false);
-
+                EntityScheduler s = entity.getScheduler();
+                if (!unsafe && cancelIfUnloaded && !entity.isValid()) return EmptyTask.INSTANCE;
+                long dt = toFoliaSafeTicks(delay > 0 ? delay : 0, period > 0, true);
+                long pt = toFoliaSafeTicks(period, period > 0, false);
                 if (period > 0) {
-                    long safeDelay = delay <= 0 ? 1 : delayTicks;
-                    return new FoliaTask(scheduler.runAtFixedRate(plugin, t -> safeRunnable.run(), null, safeDelay, periodTicks));
+                    long sd = delay <= 0 ? 1 : dt;
+                    return new FoliaTask(s.runAtFixedRate(plugin, t -> r.run(), null, sd, pt));
                 } else if (delay > 0) {
-                    return new FoliaTask(scheduler.runDelayed(plugin, t -> safeRunnable.run(), null, delayTicks));
+                    return new FoliaTask(s.runDelayed(plugin, t -> r.run(), null, dt));
                 } else {
-                    scheduler.run(plugin, t -> safeRunnable.run(), null);
-                    return new EmptyTask();
+                    s.run(plugin, t -> r.run(), null);
+                    return EmptyTask.INSTANCE;
                 }
-            } else {
-                return runGlobal(safeRunnable);
             }
+            return runGlobal(r);
         }
 
-        private Task runGlobal(Runnable safeRunnable) {
+        private Task runGlobal(Runnable r) {
             if (isFolia()) {
-                GlobalRegionScheduler scheduler = Bukkit.getGlobalRegionScheduler();
-
-                long delayTicks = toFoliaSafeTicks(delay > 0 ? delay : 0, period > 0, true);
-                long periodTicks = toFoliaSafeTicks(period, period > 0, false);
-
+                GlobalRegionScheduler s = Bukkit.getGlobalRegionScheduler();
+                long dt = toFoliaSafeTicks(delay > 0 ? delay : 0, period > 0, true);
+                long pt = toFoliaSafeTicks(period, period > 0, false);
                 if (period > 0) {
-                    long safeDelay = delay <= 0 ? 1 : delayTicks;
-                    return new FoliaTask(scheduler.runAtFixedRate(plugin, t -> safeRunnable.run(), safeDelay, periodTicks));
+                    long sd = delay <= 0 ? 1 : dt;
+                    return new FoliaTask(s.runAtFixedRate(plugin, t -> r.run(), sd, pt));
                 } else if (delay > 0) {
-                    return new FoliaTask(scheduler.runDelayed(plugin, t -> safeRunnable.run(), delayTicks));
+                    return new FoliaTask(s.runDelayed(plugin, t -> r.run(), dt));
                 } else {
-                    scheduler.run(plugin, t -> safeRunnable.run());
-                    return new EmptyTask();
+                    s.run(plugin, t -> r.run());
+                    return EmptyTask.INSTANCE;
                 }
             } else {
-                BukkitTask task;
-                long delayTicks = delay > 0 ? delay / 50L : 0;
-                long periodTicks = period > 0 ? period / 50L : 0;
-
-                if (period > 0) {
-                    task = Bukkit.getScheduler().runTaskTimer(plugin, safeRunnable, Math.max(0, delayTicks), Math.max(1, periodTicks));
-                } else if (delay > 0) {
-                    task = Bukkit.getScheduler().runTaskLater(plugin, safeRunnable, delayTicks);
-                } else {
-                    task = Bukkit.getScheduler().runTask(plugin, safeRunnable);
-                }
-                return new PaperTask(task);
+                long dt = delay > 0 ? delay / 50L : 0;
+                long pt = period > 0 ? period / 50L : 0;
+                if (period > 0)
+                    return new PaperTask(Bukkit.getScheduler()
+                            .runTaskTimer(plugin, r, Math.max(0, dt), Math.max(1, pt)));
+                else if (delay > 0)
+                    return new PaperTask(Bukkit.getScheduler().runTaskLater(plugin, r, dt));
+                else
+                    return new PaperTask(Bukkit.getScheduler().runTask(plugin, r));
             }
         }
 
         private String contextLog() {
             StringBuilder sb = new StringBuilder();
-            if (taskName != null) sb.append(" task='").append(taskName).append("'");
-            if (location != null) sb.append(" location=").append(location);
-            if (entity != null) sb.append(" entity=").append(entity.getType());
+            if (taskName  != null) sb.append(" task='").append(taskName).append("'");
+            if (location  != null) sb.append(" location=").append(location);
+            if (entity    != null) sb.append(" entity=").append(entity.getType());
             return sb.toString();
         }
     }
 
-    // ==================== TASK INTERFACES ====================
+    // ==================== TASK HANDLE ====================
 
-    /**
-     * Platform-agnostic task abstraction wrapper interface.
-     */
+    /** Platform-agnostic handle returned by every scheduling call. */
     public interface Task {
-        /** Cancels the scheduled task. */
+        /** Cancels this task. No-op if already cancelled or completed. */
         void cancel();
-        /** Checks whether the task has been explicitly cancelled. */
+        /** Returns {@code true} if this task has been cancelled. */
         boolean isCancelled();
-        /** Checks whether the task is still actively registered and waiting/running. */
+        /** Returns {@code true} if this task is still scheduled or running. */
         boolean isRunning();
     }
 
-    private static class EmptyTask implements Task {
-        @Override public void cancel() {}
-        @Override public boolean isCancelled() { return true; }
-        @Override public boolean isRunning() { return false; }
+    // Stateless singleton — no allocation on chunk-not-loaded fast-path.
+    private static final class EmptyTask implements Task {
+        static final EmptyTask INSTANCE = new EmptyTask();
+        private EmptyTask() {}
+        @Override public void cancel()            {}
+        @Override public boolean isCancelled()    { return true; }
+        @Override public boolean isRunning()      { return false; }
     }
 
-    private static class PaperTask implements Task {
-        private final BukkitTask task;
-        public PaperTask(BukkitTask task) { this.task = task; }
-        @Override public void cancel() { if (task != null) task.cancel(); }
-        @Override public boolean isCancelled() { return task != null && task.isCancelled(); }
-        @Override public boolean isRunning() { return task != null && !task.isCancelled(); }
+    private static final class PaperTask implements Task {
+        private final BukkitTask t;
+        PaperTask(BukkitTask t)                  { this.t = t; }
+        @Override public void cancel()            { if (t != null) t.cancel(); }
+        @Override public boolean isCancelled()    { return t == null || t.isCancelled(); }
+        @Override public boolean isRunning()      { return t != null && !t.isCancelled(); }
     }
 
-    private static class FoliaTask implements Task {
-        private final ScheduledTask task;
-        public FoliaTask(ScheduledTask task) { this.task = task; }
-        @Override public void cancel() { if (task != null) task.cancel(); }
-        @Override public boolean isCancelled() { return task != null && task.isCancelled(); }
-        @Override public boolean isRunning() { return task != null && !task.isCancelled(); }
+    private static final class FoliaTask implements Task {
+        private final ScheduledTask t;
+        FoliaTask(ScheduledTask t)                { this.t = t; }
+        @Override public void cancel()            { if (t != null) t.cancel(); }
+        @Override public boolean isCancelled()    { return t == null || t.isCancelled(); }
+        @Override public boolean isRunning()      { return t != null && !t.isCancelled(); }
+    }
+
+    // ==================== TELEPORT ====================
+
+    /**
+     * Teleports an entity asynchronously with platform-aware fallbacks.
+     *
+     * <ul>
+     *   <li><b>Folia</b>: uses the entity's async teleport via EntityScheduler.</li>
+     *   <li><b>Paper 1.20+</b>: uses {@code Entity.teleportAsync()} (native async support).</li>
+     *   <li><b>Spigot</b>: schedules a synchronous teleport on the next tick as fallback.</li>
+     * </ul>
+     *
+     * @param entity   Entity or player to teleport.
+     * @param location Destination location.
+     * @return {@link CompletableFuture}{@code <Boolean>} — {@code true} on success.
+     */
+    @AnyThread
+    public static CompletableFuture<Boolean> teleportAsync(Entity entity, Location location) {
+        return teleportAsync(entity, location, TeleportCause.PLUGIN);
+    }
+
+    /**
+     * Teleports an entity asynchronously with a custom {@link TeleportCause}.
+     *
+     * @param entity   Entity to teleport.
+     * @param location Destination.
+     * @param cause    Reason for the teleport.
+     * @return {@link CompletableFuture}{@code <Boolean>} — {@code true} on success.
+     */
+    @AnyThread
+    public static CompletableFuture<Boolean> teleportAsync(Entity entity, Location location, TeleportCause cause) {
+        requireInit();
+        if (entity == null || location == null) {
+            CompletableFuture<Boolean> f = new CompletableFuture<>();
+            f.complete(false);
+            return f;
+        }
+
+        if (isFolia()) {
+            // Folia: teleport must happen on the entity's region thread.
+            CompletableFuture<Boolean> future = new CompletableFuture<>();
+            entity.getScheduler().execute(plugin, () -> {
+                try {
+                    entity.teleport(location, cause);
+                    future.complete(true);
+                } catch (Throwable e) {
+                    future.completeExceptionally(e);
+                }
+            }, () -> future.complete(false), 1L);
+            return future;
+        }
+
+        if (isPaper()) {
+            // Paper: native async teleport available since 1.13.
+            return entity.teleportAsync(location, cause);
+        }
+
+        // Spigot fallback: schedule on next tick.
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            try {
+                boolean result = entity.teleport(location, cause);
+                future.complete(result);
+            } catch (Throwable e) {
+                future.completeExceptionally(e);
+            }
+        });
+        return future;
     }
 
     // ==================== DIRECT API (HOT PATHS) ====================
 
     /**
-     * Executes a task on the next main/global region tick immediately with minimum footprint.
+     * Executes {@code runnable} on the next global/main-thread tick. No builder, no tracking.
      *
      * @param runnable The action to execute.
      */
+    @AnyThread
     public static void runDirect(Runnable runnable) {
-        if (isFolia()) {
-            Bukkit.getGlobalRegionScheduler().execute(plugin, runnable);
-        } else {
-            Bukkit.getScheduler().runTask(plugin, runnable);
-        }
+        if (isFolia()) Bukkit.getGlobalRegionScheduler().execute(plugin, runnable);
+        else           Bukkit.getScheduler().runTask(plugin, runnable);
     }
 
     /**
-     * Executes a task immediately inside the thread managing the provided location region.
+     * Executes {@code runnable} on the region thread owning {@code location}.
      *
-     * @param location The targeted location routing context.
-     * @param runnable The action to execute.
+     * @param location Routing context.
+     * @param runnable The action.
      */
+    @AnyThread
     public static void runDirectAt(Location location, Runnable runnable) {
-        if (isFolia()) {
-            Bukkit.getRegionScheduler().execute(plugin, location, runnable);
-        } else {
-            Bukkit.getScheduler().runTask(plugin, runnable);
-        }
+        if (isFolia()) Bukkit.getRegionScheduler().execute(plugin, location, runnable);
+        else           Bukkit.getScheduler().runTask(plugin, runnable);
     }
 
     /**
-     * Executes a task immediately inside the thread region managing the targeted entity lifecycle.
+     * Executes {@code runnable} on the entity's scheduler (Folia) or main thread (Paper/Spigot).
      *
-     * @param entity   The target entity context.
-     * @param runnable The action to execute.
+     * @param entity   Routing context.
+     * @param runnable The action.
      */
+    @AnyThread
     public static void runDirectWith(Entity entity, Runnable runnable) {
-        if (isFolia() && entity != null) {
-            entity.getScheduler().execute(plugin, runnable, null, 0L);
-        } else {
-            Bukkit.getScheduler().runTask(plugin, runnable);
-        }
+        if (isFolia() && entity != null) entity.getScheduler().execute(plugin, runnable, null, 0L);
+        else                             Bukkit.getScheduler().runTask(plugin, runnable);
     }
 
     /**
-     * Schedules a delayed action on the main global ticker line using zero allocations.
+     * One-shot delayed execution on the global scheduler. No builder, no tracking.
      *
-     * @param runnable   The action to execute.
-     * @param delayTicks The amount of ticks to wait.
+     * @param runnable   The action.
+     * @param delayTicks Delay in server ticks (≥ 1).
      */
+    @AnyThread
     public static void runDirectLater(Runnable runnable, long delayTicks) {
-        if (isFolia()) {
-            Bukkit.getGlobalRegionScheduler().runDelayed(plugin, t -> runnable.run(), delayTicks);
-        } else {
-            Bukkit.getScheduler().runTaskLater(plugin, runnable, delayTicks);
-        }
+        if (isFolia()) Bukkit.getGlobalRegionScheduler().runDelayed(plugin, t -> runnable.run(), delayTicks);
+        else           Bukkit.getScheduler().runTaskLater(plugin, runnable, delayTicks);
     }
 
     /**
-     * Schedules a fast repeating timer task on the global tier lines with zero allocation structures.
+     * Repeating task on the global scheduler. No builder, no tracking.
      *
-     * @param runnable    The action to repeat.
-     * @param periodTicks Repeating rate interval measured in ticks.
+     * @param runnable    The action.
+     * @param periodTicks Interval in server ticks (≥ 1).
      */
+    @AnyThread
     public static void runDirectTimer(Runnable runnable, long periodTicks) {
-        if (isFolia()) {
-            Bukkit.getGlobalRegionScheduler().runAtFixedRate(plugin, t -> runnable.run(), 1L, Math.max(1L, periodTicks));
-        } else {
-            Bukkit.getScheduler().runTaskTimer(plugin, runnable, 0L, periodTicks);
-        }
-    }
-
-    /**
-     * Runs a streamlined global timer loop that will abort automatically as soon as a stop condition evaluates to true.
-     *
-     * @param task          The code block to execute repeatedly.
-     * @param periodTicks   Repeating rate interval measured in ticks.
-     * @param stopCondition Condition scanned every pass; when true, execution loops freeze and stop.
-     * @return A {@link Task} controller handle.
-     */
-    public static Task runTimerUntilFast(Runnable task, long periodTicks, BooleanSupplier stopCondition) {
-        AtomicReference<Task> taskRef = new AtomicReference<>();
-        Runnable wrapped = () -> {
-            if (stopCondition.getAsBoolean()) {
-                Task t = taskRef.get();
-                if (t != null) t.cancel();
-                return;
-            }
-            task.run();
-        };
-        Task scheduled;
-        if (isFolia()) {
-            scheduled = new FoliaTask(Bukkit.getGlobalRegionScheduler().runAtFixedRate(plugin, t -> wrapped.run(), 1L, Math.max(1L, periodTicks)));
-        } else {
-            scheduled = new PaperTask(Bukkit.getScheduler().runTaskTimer(plugin, wrapped, 0L, periodTicks));
-        }
-        taskRef.set(scheduled);
-        return scheduled;
+        if (isFolia()) Bukkit.getGlobalRegionScheduler()
+                .runAtFixedRate(plugin, t -> runnable.run(), 1L, Math.max(1L, periodTicks));
+        else           Bukkit.getScheduler().runTaskTimer(plugin, runnable, 0L, periodTicks);
     }
 
     // ==================== STANDARD UTILITIES ====================
 
-    /** Runs an action on the very next tick. */
+    /** Runs {@code runnable} on the very next tick. */
+    @AnyThread
     public static void runNextTick(Runnable runnable) {
         task(runnable).afterTicks(1).run();
     }
 
-    /** Runs an action after a specified amount of time. */
+    /** Runs {@code runnable} after the specified real-time delay. */
+    @AnyThread
     public static void runLater(Runnable runnable, long delay, TimeUnit unit) {
         task(runnable).after(delay, unit).run();
     }
 
-    /** Runs an action asynchronously and returns a {@link CompletableFuture}. */
+    /**
+     * Runs {@code runnable} asynchronously and returns a {@link CompletableFuture<Void>}.
+     * Exceptions propagate via {@code completeExceptionally}.
+     */
+    @AnyThread
     public static CompletableFuture<Void> runAsync(Runnable runnable) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        task(() -> {
-            try {
-                runnable.run();
-                future.complete(null);
-            } catch (Throwable e) {
-                future.completeExceptionally(e);
-            }
-        }).async().run();
-        return future;
+        CompletableFuture<Void> f = new CompletableFuture<>();
+        task(() -> { try { runnable.run(); f.complete(null); }
+        catch (Throwable e) { f.completeExceptionally(e); } })
+                .async().run();
+        return f;
     }
 
-    /** Invokes a supplier asynchronously and passes the result into a {@link CompletableFuture}. */
+    /** Calls {@code supplier} asynchronously and returns the result via {@link CompletableFuture}. */
+    @AnyThread
     public static <T> CompletableFuture<T> callAsync(Supplier<T> supplier) {
-        CompletableFuture<T> future = new CompletableFuture<>();
-        task(() -> {
-            try {
-                future.complete(supplier.get());
-            } catch (Throwable e) {
-                future.completeExceptionally(e);
-            }
-        }).async().run();
-        return future;
+        CompletableFuture<T> f = new CompletableFuture<>();
+        task(() -> { try { f.complete(supplier.get()); }
+        catch (Throwable e) { f.completeExceptionally(e); } })
+                .async().run();
+        return f;
     }
 
-    /** Runs a task synchronously on the global/main execution context thread lines. */
+    /** Executes {@code runnable} on the global/main thread. */
+    @AnyThread
     public static void runSync(Runnable runnable) {
-        if (isFolia()) {
-            Bukkit.getGlobalRegionScheduler().execute(plugin, runnable);
-        } else {
-            Bukkit.getScheduler().runTask(plugin, runnable);
-        }
+        if (isFolia()) Bukkit.getGlobalRegionScheduler().execute(plugin, runnable);
+        else           Bukkit.getScheduler().runTask(plugin, runnable);
     }
 
-    /** Runs a task synchronously on the global layer after a set tick delay. */
+    /** Schedules {@code runnable} on the global/main thread after {@code delayTicks} ticks. */
+    @AnyThread
     public static Task runSyncLater(Runnable runnable, long delayTicks) {
         return task(runnable).afterTicks(delayTicks).run();
     }
 
-    /** Calls a value provider on the main thread loop line, returning a completing promise token. */
+    /**
+     * Runs {@code supplier} on the global/main thread and returns the result via {@link CompletableFuture}.
+     * Useful for reading Bukkit API state from an async context.
+     */
+    @AnyThread
     public static <T> CompletableFuture<T> callSync(Supplier<T> supplier) {
-        CompletableFuture<T> future = new CompletableFuture<>();
-        runSync(() -> {
-            try {
-                future.complete(supplier.get());
-            } catch (Throwable e) {
-                future.completeExceptionally(e);
-            }
-        });
-        return future;
+        CompletableFuture<T> f = new CompletableFuture<>();
+        runSync(() -> { try { f.complete(supplier.get()); }
+        catch (Throwable e) { f.completeExceptionally(e); } });
+        return f;
     }
 
     /**
-     * Executes an operation on all currently online players safely.
+     * Iterates all online players on the main thread with per-player exception isolation.
      *
-     * @param action The operation to apply to each player.
+     * @param action Operation to apply per player.
      */
+    @AnyThread
     public static void forAllPlayers(Consumer<Player> action) {
         runSync(() -> {
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                if (player != null) {
-                    try {
-                        action.accept(player);
-                    } catch (Throwable e) {
-                        plugin.getLogger().warning("Error processing player " + player.getName() + ": " + safeMessage(e));
-                    }
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (p == null) continue;
+                try { action.accept(p); }
+                catch (Throwable e) {
+                    plugin.getLogger().log(Level.WARNING,
+                            "Error processing player " + p.getName() + ": " + safeMessage(e), e);
                 }
             }
         });
     }
 
     /**
-     * Scans through all currently loaded chunks across all worlds synchronously on the main thread,
-     * then processes them. Chunk data is NOT thread-safe and must be read on the main thread.
+     * Iterates all loaded chunks on the main thread with per-chunk exception isolation.
+     * <p>{@code getLoadedChunks()} is not thread-safe — must run on main thread.</p>
      *
-     * @param action The operation to execute on each loaded chunk.
+     * @param action Operation to apply per chunk.
      */
+    @AnyThread
     public static void forAllLoadedChunks(Consumer<Chunk> action) {
         runSync(() -> {
-            for (World world : Bukkit.getWorlds()) {
-                if (world != null) {
-                    for (Chunk chunk : world.getLoadedChunks()) {
-                        if (chunk != null) {
-                            try {
-                                action.accept(chunk);
-                            } catch (Throwable e) {
-                                plugin.getLogger().warning("Error processing chunk: " + safeMessage(e));
-                            }
-                        }
+            for (World w : Bukkit.getWorlds()) {
+                if (w == null) continue;
+                for (Chunk c : w.getLoadedChunks()) {
+                    if (c == null) continue;
+                    try { action.accept(c); }
+                    catch (Throwable e) {
+                        plugin.getLogger().log(Level.WARNING,
+                                "Error processing chunk: " + safeMessage(e), e);
                     }
                 }
             }
@@ -847,101 +945,151 @@ public class MagmaLib {
     }
 
     /**
-     * Executes a task at a specific location, only if the chunk at that location is currently loaded.
-     *
-     * @param location The target location.
-     * @param task     The task to run.
+     * Executes {@code task} at {@code location} only if its chunk is loaded.
+     * Silent no-op otherwise.
      */
+    @AnyThread
     public static void executeIfLoaded(Location location, Runnable task) {
-        World world = location.getWorld();
-        if (world != null && world.isChunkLoaded(location.getBlockX() >> 4, location.getBlockZ() >> 4)) {
+        World w = location.getWorld();
+        if (w != null && w.isChunkLoaded(location.getBlockX() >> 4, location.getBlockZ() >> 4))
             MagmaLib.task(task).at(location).run();
-        }
     }
 
+    // ==================== SELF-CANCELLING TIMERS ====================
+
     /**
-     * Spawns a repeating task that monitors a stop condition, cancelling itself when triggered.
+     * Repeating task that cancels itself when {@code stopCondition} returns {@code true}.
+     * <p>The task body runs ONLY while the condition is {@code false}.</p>
      *
-     * @param task          The loop body task.
-     * @param periodTicks   Repeating rate interval measured in ticks.
-     * @param stopCondition Cancellation check logic.
-     * @return A {@link Task} controller handle.
+     * @param task          Loop body.
+     * @param periodTicks   Interval in ticks.
+     * @param stopCondition When {@code true}, timer self-cancels.
+     * @return {@link Task} handle for external cancellation.
      */
+    @AnyThread
     public static Task runTimerUntil(Runnable task, long periodTicks, BooleanSupplier stopCondition) {
-        AtomicReference<Task> taskRef = new AtomicReference<>();
-        Task actualTask = MagmaLib.task(() -> {
+        AtomicReference<Task> ref = new AtomicReference<>();
+        Task handle = MagmaLib.task(() -> {
             if (stopCondition.getAsBoolean()) {
-                Task t = taskRef.get();
+                Task t = ref.get();
                 if (t != null) t.cancel();
             } else {
                 task.run();
             }
         }).everyTicks(periodTicks).run();
-        taskRef.set(actualTask);
-        return actualTask;
+        ref.set(handle);
+        return handle;
     }
 
     /**
-     * Runs a task with automatic retry attempts if it fails/throws an exception.
+     * Repeating task that runs ONLY while {@code continueCondition} is {@code true},
+     * and self-cancels the moment it becomes {@code false}.
+     * <p>This is the inverse of {@link #runTimerUntil} — often more readable.</p>
      *
-     * @param task                 The task to try.
-     * @param maxAttempts          Maximum number of allowed tries.
-     * @param delayBetweenAttempts Time delay between each consecutive retry attempt.
-     * @param unit                 The time unit of the delay.
+     * <pre>{@code
+     * // Runs every tick while the player is online and not dead
+     * MagmaLib.runTimerWhile(
+     *     () -> updateHUD(player),
+     *     1,
+     *     () -> player.isOnline() && !player.isDead()
+     * );
+     * }</pre>
+     *
+     * @param task              Loop body.
+     * @param periodTicks       Interval in ticks.
+     * @param continueCondition While {@code true}, the task runs. When {@code false}, timer cancels.
+     * @return {@link Task} handle for external cancellation.
      */
+    @AnyThread
+    public static Task runTimerWhile(Runnable task, long periodTicks, BooleanSupplier continueCondition) {
+        return runTimerUntil(task, periodTicks, () -> !continueCondition.getAsBoolean());
+    }
+
+    /**
+     * Fast self-cancelling global timer. No AtomicReference allocation on the
+     * happy path — the reference is resolved once at startup.
+     *
+     * @param task          Loop body.
+     * @param periodTicks   Interval in ticks.
+     * @param stopCondition When {@code true}, timer self-cancels.
+     * @return {@link Task} handle.
+     */
+    @AnyThread
+    public static Task runTimerUntilFast(Runnable task, long periodTicks, BooleanSupplier stopCondition) {
+        AtomicReference<Task> ref = new AtomicReference<>();
+        Runnable wrapped = () -> {
+            if (stopCondition.getAsBoolean()) {
+                Task t = ref.get();
+                if (t != null) t.cancel();
+                return;
+            }
+            task.run();
+        };
+        Task scheduled = isFolia()
+                ? new FoliaTask(Bukkit.getGlobalRegionScheduler()
+                .runAtFixedRate(plugin, t -> wrapped.run(), 1L, Math.max(1L, periodTicks)))
+                : new PaperTask(Bukkit.getScheduler()
+                .runTaskTimer(plugin, wrapped, 0L, periodTicks));
+        ref.set(scheduled);
+        track(scheduled);
+        return scheduled;
+    }
+
+    // ==================== RETRY ====================
+
+    /**
+     * Executes {@code task} and retries up to {@code maxAttempts} times on failure.
+     * First attempt is immediate; retries use {@code delayBetweenAttempts}.
+     *
+     * @param task                 Operation to attempt.
+     * @param maxAttempts          Max tries (≥ 1).
+     * @param delayBetweenAttempts Delay between retries.
+     * @param unit                 Time unit of the delay.
+     * @throws IllegalArgumentException if {@code maxAttempts < 1}.
+     */
+    @AnyThread
     public static void runWithRetry(Runnable task, int maxAttempts, long delayBetweenAttempts, TimeUnit unit) {
+        if (maxAttempts < 1) throw new IllegalArgumentException(
+                "maxAttempts must be >= 1, got: " + maxAttempts);
         new Runnable() {
             int attempts = 0;
-            @Override
-            public void run() {
-                try {
-                    task.run();
-                } catch (Throwable e) {
+            @Override public void run() {
+                try { task.run(); }
+                catch (Throwable e) {
                     attempts++;
-                    if (attempts < maxAttempts) {
-                        runLater(this, delayBetweenAttempts, unit);
-                    } else {
-                        plugin.getLogger().severe("Task failed after " + maxAttempts + " attempts: " + safeMessage(e));
-                    }
+                    if (attempts < maxAttempts) runLater(this, delayBetweenAttempts, unit);
+                    else plugin.getLogger().log(Level.SEVERE,
+                            "Task failed after " + maxAttempts + " attempt(s): " + safeMessage(e), e);
                 }
             }
         }.run();
     }
 
+    // ==================== FOLIA SCHEDULER ACCESS ====================
+
     /**
-     * Directly fetches Folia's RegionScheduler.
-     *
-     * @return The {@link RegionScheduler}.
-     * @throws UnsupportedOperationException If requested while running on non-Folia platforms.
+     * Returns Folia's {@link RegionScheduler}.
+     * @throws UnsupportedOperationException on Paper/Spigot.
      */
     public static RegionScheduler getRegionScheduler() {
-        if (isFolia()) {
-            return Bukkit.getRegionScheduler();
-        }
+        if (isFolia()) return Bukkit.getRegionScheduler();
         throw new UnsupportedOperationException("RegionScheduler is only available on Folia");
     }
 
     /**
-     * Directly fetches Folia's EntityScheduler for a specific entity.
-     *
-     * @param entity The target entity.
-     * @return The {@link EntityScheduler} instance bound to the target entity.
-     * @throws UnsupportedOperationException If requested while running on non-Folia platforms.
+     * Returns Folia's {@link EntityScheduler} for the given entity.
+     * @throws UnsupportedOperationException on Paper/Spigot or if entity is null.
      */
     public static EntityScheduler getEntityScheduler(Entity entity) {
-        if (isFolia() && entity != null) {
-            return entity.getScheduler();
-        }
+        if (isFolia() && entity != null) return entity.getScheduler();
         throw new UnsupportedOperationException("EntityScheduler is only available on Folia");
     }
 
-    /** Utility tool converting a value from Server Ticks to Milliseconds. */
-    public static long ticksToMs(long ticks) {
-        return ticks * 50L;
-    }
+    // ==================== TIME CONVERSION ====================
 
-    /** Utility tool converting a value from Milliseconds to Server Ticks. */
-    public static long msToTicks(long ms) {
-        return ms / 50L;
-    }
+    /** Converts server ticks to milliseconds (× 50). */
+    public static long ticksToMs(long ticks)  { return ticks * 50L; }
+
+    /** Converts milliseconds to server ticks (÷ 50). */
+    public static long msToTicks(long ms)     { return ms / 50L; }
 }
