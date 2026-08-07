@@ -746,22 +746,7 @@ public final class MagmaLib {
             return f;
         }
 
-        if (isFolia()) {
-            // Folia: teleport must happen on the entity's region thread.
-            CompletableFuture<Boolean> future = new CompletableFuture<>();
-            entity.getScheduler().execute(plugin, () -> {
-                try {
-                    entity.teleport(location, cause);
-                    future.complete(true);
-                } catch (Throwable e) {
-                    future.completeExceptionally(e);
-                }
-            }, () -> future.complete(false), 1L);
-            return future;
-        }
-
-        if (isPaper()) {
-            // Paper: native async teleport available since 1.13.
+        if (isFolia() || isPaper()) {
             return entity.teleportAsync(location, cause);
         }
 
